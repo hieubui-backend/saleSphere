@@ -53,8 +53,8 @@ const mongoose = require('mongoose');
 
 // --- IMPORT MODELS ---
 const Tenant = require('../../infrastructure/database/models/tenant.model');
-const Customer = require('../customer/customer.model'); 
-const Order = require('../order/order.model');
+const Customer = require('../../infrastructure/database/models/customer.model'); 
+const Order = require('../../infrastructure/database/models/order.model');
 const Product = require('../../infrastructure/database/models/product.model');
 
 // --- IMPORT SERVICES ---

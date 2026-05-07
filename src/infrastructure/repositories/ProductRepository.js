@@ -3,6 +3,30 @@ class ProductRepository {
         this.productModel = productModel;
     }
 
+    findOne(query, options = {}) {
+        return this.productModel.findOne(query, null, options);
+    }
+
+    findById(id, options = {}) {
+        return this.productModel.findById(id, null, options);
+    }
+
+    find(query, options = {}) {
+        return this.productModel.find(query, null, options);
+    }
+
+    updateOne(query, update, options = {}) {
+        return this.productModel.updateOne(query, update, options);
+    }
+
+    findByIdAndUpdate(id, update, options = {}) {
+        return this.productModel.findByIdAndUpdate(id, update, options);
+    }
+
+    async countDocuments(query = {}) {
+        return await this.productModel.countDocuments(query);
+    }
+
     async findByTenant(tenantId, { page = 1, limit = 10, search } = {}) {
         const query = { tenantId, isActive: true };
         if (search) query.name = { $regex: search, $options: 'i' };
@@ -17,8 +41,8 @@ class ProductRepository {
         return { products, count };
     }
 
-    async findByIdAndTenant(id, tenantId) {
-        return await this.productModel.findOne({ _id: id, tenantId });
+    findByIdAndTenant(id, tenantId) {
+        return this.productModel.findOne({ _id: id, tenantId });
     }
 
     async create(productData) {
@@ -26,25 +50,21 @@ class ProductRepository {
         return await product.save();
     }
 
-    async updateByIdAndTenant(id, tenantId, updateData) {
-        return await this.productModel.findOneAndUpdate(
+    updateByIdAndTenant(id, tenantId, updateData) {
+        return this.productModel.findOneAndUpdate(
             { _id: id, tenantId },
             updateData,
             { new: true, runValidators: true }
         );
     }
 
-    async deleteByIdAndTenant(id, tenantId) {
-        return await this.productModel.findOneAndDelete({ _id: id, tenantId });
+    deleteByIdAndTenant(id, tenantId) {
+        return this.productModel.findOneAndDelete({ _id: id, tenantId });
     }
 
-    async countByFilter(filter = {}) {
-        return await this.productModel.countDocuments(filter);
-    }
-
-    async updateStock(productId, quantityChange, session = null) {
+    updateStock(productId, quantityChange, session = null) {
         const opts = session ? { session } : {};
-        return await this.productModel.findByIdAndUpdate(
+        return this.productModel.findByIdAndUpdate(
             productId,
             { $inc: { stock: quantityChange } },
             opts

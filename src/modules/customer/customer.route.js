@@ -1,16 +1,16 @@
 const express = require('express');
 const router = express.Router();
-const Customer = require('./customer.model');
+const Customer = require('../../infrastructure/database/models/customer.model');
 const Product = require('../../infrastructure/database/models/product.model');
-const Order = require('../order/order.model');
-const Cart = require('../Cart'); 
+const Order = require('../../infrastructure/database/models/order.model');
+const Cart = require('../../infrastructure/database/models/cart.model'); 
 const bcrypt = require('bcryptjs');
 
-const customerController = require('../../controllers/customer.controller');
+const customerController = require('../../presentation/controllers/customer.controller');
 const { isAuthenticated } = require('../../middlewares/auth.middleware');
 
 // --- IMPORT SERVICE ---
-const orderService = require('../../services/order.service'); 
+ 
 
 /**
  * MIDDLEWARE: Kiểm tra đăng nhập Khách hàng
@@ -200,7 +200,7 @@ router.post('/cart/checkout', isCustomerAuthenticated, async (req, res) => {
         };
 
         const shopId = cart.items[0].tenantId;
-        const newOrder = await orderService.createOrder(shopId, customerId, orderData);
+        const newOrder = await req.container.cradle.orderUseCases.createOrder(shopId, customerId, orderData);
 
         await Cart.deleteOne({ customerId }); 
 
@@ -244,7 +244,7 @@ router.post('/orders/:id/dispute', isCustomerAuthenticated, async (req, res) => 
             return res.status(400).json({ success: false, message: "Lý do khiếu nại là bắt buộc!" });
         }
 
-        const updatedOrder = await orderService.handleDispute(orderId, {
+        const updatedOrder = await req.container.cradle.orderUseCases.handleDispute(orderId, {
             isDisputed: true,
             type,
             reason,

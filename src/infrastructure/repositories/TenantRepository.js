@@ -3,16 +3,24 @@ class TenantRepository {
         this.tenantModel = tenantModel;
     }
 
-    async findByEmailOrSlug(email, slug) {
-        return await this.tenantModel.findOne({ $or: [{ email }, { slug }] });
+    findByEmailOrSlug(email, slug) {
+        return this.tenantModel.findOne({ $or: [{ email }, { slug }] });
     }
 
-    async findById(id) {
-        return await this.tenantModel.findById(id);
+    findById(id) {
+        return this.tenantModel.findById(id);
+    }
+
+    findOne(query) {
+        return this.tenantModel.findOne(query);
     }
 
     async findAll(filter = {}, sort = { createdAt: -1 }) {
         return await this.tenantModel.find(filter).sort(sort).lean();
+    }
+
+    find(filter = {}) {
+        return this.tenantModel.find(filter);
     }
 
     async create(tenantData) {
@@ -20,14 +28,18 @@ class TenantRepository {
         return await tenant.save();
     }
 
-    async updateById(id, updateData) {
-        return await this.tenantModel.findByIdAndUpdate(
+    updateById(id, updateData) {
+        return this.tenantModel.findByIdAndUpdate(
             id, updateData, { new: true, runValidators: true }
         );
     }
 
     async deleteById(id) {
         return await this.tenantModel.findByIdAndDelete(id);
+    }
+
+    async countDocuments(filter = {}) {
+        return await this.tenantModel.countDocuments(filter);
     }
 
     async count(filter = {}) {
