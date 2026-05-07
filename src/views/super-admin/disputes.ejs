@@ -1,0 +1,87 @@
+<td class="align-middle text-center">
+    <% 
+        // Escape dữ liệu để tránh lỗi vỡ chuỗi Javascript khi có dấu nháy
+        const safeReason = order.dispute?.reason ? order.dispute.reason.replace(/'/g, "\\'").replace(/"/g, "&quot;") : 'Yêu cầu hoàn trả';
+        const safeResponse = order.dispute?.shopResponse ? order.dispute.shopResponse.replace(/'/g, "\\'").replace(/"/g, "&quot;") : 'Chưa có phản hồi';
+    %>
+    <button class="btn btn-link text-primary font-weight-bold text-xs mb-0" 
+            onclick="openVerdictModal('<%= order._id %>', '<%= safeReason %>', '<%= safeResponse %>')">
+        <i class="fas fa-balance-scale me-1"></i> Xử lý Trọng tài
+    </button>
+</td>
+
+<script>
+/**
+ * PHÁT TÍN HIỆU REALTIME QUA SOCKET.IO (BỔ SUNG)
+ * Giúp Admin nhận thông báo ngay khi có tranh chấp mới mà không cần F5
+ */
+const socket = io(); // Đảm bảo bạn đã nhúng socket.io client script
+
+socket.on('orderUpdate', (data) => {
+    // Nếu đơn hàng chuyển sang trạng thái cần xử lý, có thể hiện thông báo nhỏ ở góc màn hình
+    if (data.status === 'dispute_escalated') {
+        // Bạn có thể dùng Toast để thông báo cho Super Admin
+        console.log("Có khiếu nại mới cần xử lý:", data.orderId);
+    }
+});
+
+function openVerdictModal(id, customerReason, shopResponse) {
+    document.getElementById('modalOrderId').value = id;
+    // Dùng innerText thay vì innerHTML để tránh lỗi XSS
+    document.getElementById('customerReason').innerText = customerReason;
+    document.getElementById('shopResponse').innerText = shopResponse;
+    
+    // Khởi tạo và hiện Modal
+    const modalElement = document.getElementById('verdictModal');
+    const myModal = bootstrap.Modal.getOrCreateInstance(modalElement);
+    myModal.show();
+}
+
+async function submitVerdict() {
+    const btn = document.getElementById('btnSubmitVerdict');
+    const verdictSelect = document.getElementById('verdict');
+    const adminNoteArea = document.getElementById('adminNote');
+    
+    const formData = {
+        orderId: document.getElementById('modalOrderId').value,
+        verdict: verdictSelect.value,
+        adminNote: adminNoteArea.value
+    };
+
+    if (!formData.verdict) {
+        Swal.fire('Chú ý', 'Vui lòng chọn phán quyết thắng/thua!', 'warning');
+        return;
+    }
+
+    try {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Đang xử lý...';
+
+        const response = await fetch('/super-admin/resolve-dispute-final', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Đóng modal trước khi hiện thông báo thành công
+            bootstrap.Modal.getInstance(document.getElementById('verdictModal')).hide();
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'Đã thực thi!',
+                text: 'Hệ thống đã tự động hoàn tiền/thanh toán và cập nhật lại kho hàng.',
+                confirmButtonColor: '#5e72e4'
+            }).then(() => location.reload());
+        } else {
+            throw new Error(result.message);
+        }
+    } catch (err) {
+        Swal.fire('Lỗi hệ thống', err.message || 'Không thể kết nối máy chủ', 'error');
+        btn.disabled = false;
+        btn.innerText = 'Thực thi phán quyết';
+    }
+}
+</script>

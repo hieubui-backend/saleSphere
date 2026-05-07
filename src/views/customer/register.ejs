@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Đăng ký tài khoản Shopee</title>
+</head>
+<body class="bg-orange-50 min-h-screen flex items-center justify-center">
+    <div class="max-w-md w-full bg-white p-8 rounded-2xl shadow-xl">
+        <h1 class="text-3xl font-bold text-orange-600 text-center mb-6">Salesphere</h1>
+        <h2 class="text-xl font-semibold mb-4 text-slate-700">Đăng ký người mua</h2>
+        
+        <% if (error) { %>
+            <div class="bg-red-100 text-red-600 p-3 rounded-lg mb-4 text-sm"><%= error %></div>
+        <% } %>
+
+        <form action="/customer/register" method="POST" class="space-y-4">
+            <input type="text" name="name" placeholder="Họ và tên" class="w-full p-3 border rounded-lg outline-orange-500" required>
+            <input type="email" name="email" placeholder="Email" class="w-full p-3 border rounded-lg outline-orange-500" required>
+            <input type="password" name="password" placeholder="Mật khẩu" class="w-full p-3 border rounded-lg outline-orange-500" required>
+            <button class="w-full bg-orange-600 text-white font-bold py-3 rounded-lg hover:bg-orange-700 transition">ĐĂNG KÝ</button>
+        </form>
+        <p class="mt-4 text-center text-sm">Đã có tài khoản? <a href="/customer/login" class="text-orange-600 font-bold">Đăng nhập</a></p>
+    </div>
+</body>
+</html>

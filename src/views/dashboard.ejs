@@ -1,0 +1,166 @@
+<div class="mb-8 flex justify-between items-center">
+    <div>
+        <h1 class="text-2xl font-bold text-slate-800">Báo cáo cửa hàng</h1>
+        <p class="text-slate-500 text-sm">Chào mừng quay trở lại, <span class="font-semibold text-indigo-600"><%= userName %></span></p>
+    </div>
+    <div class="flex gap-3">
+        <div class="flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-100 text-green-700 rounded-xl shadow-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+            </svg>
+            <span class="text-xs font-bold uppercase tracking-wider">
+                Cửa hàng: <%= (user && user.tenantName) ? user.tenantName : 'Đối tác' %>
+            </span>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+            </div>
+            <span class="text-green-500 text-xs font-bold bg-green-50 px-2 py-1 rounded-lg">Online</span>
+        </div>
+        <p class="text-slate-500 text-sm font-medium">Sản phẩm của tôi</p>
+        <h2 class="text-3xl font-black text-slate-800 mt-1" id="stat-products"><%= stats.totalProducts || 0 %></h2>
+    </div>
+
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center text-orange-600">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+            </div>
+            <span class="text-orange-500 text-xs font-bold bg-orange-50 px-2 py-1 rounded-lg">Tổng đơn</span>
+        </div>
+        <p class="text-slate-500 text-sm font-medium">Tổng số đơn hàng</p>
+        <h2 class="text-3xl font-black text-slate-800 mt-1" id="stat-orders"><%= stats.totalOrders || 0 %></h2>
+    </div>
+
+    <div class="bg-gradient-to-br from-indigo-600 to-indigo-700 p-6 rounded-2xl shadow-lg shadow-indigo-100 lg:col-span-2 text-white relative overflow-hidden">
+        <div class="relative z-10">
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-12 h-12 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+            </div>
+            <p class="text-indigo-100 text-sm font-medium opacity-80">Doanh Thu Hoàn Tất (VNĐ)</p>
+            <h2 class="text-4xl font-black mt-2 tracking-tight">
+                <span id="stat-revenue">
+                    <%= (stats && stats.totalRevenue) ? stats.totalRevenue.toLocaleString('vi-VN') : '0' %>
+                </span> 
+                <span class="text-lg font-normal opacity-70">₫</span>
+            </h2>
+        </div>
+        <svg class="absolute -right-4 -bottom-4 w-32 h-32 text-white/10" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z" />
+        </svg>
+    </div>
+</div>
+
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+    <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+        <div class="flex items-center gap-3">
+            <div class="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                    <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd" />
+                </svg>
+            </div>
+            <div>
+                <h3 class="font-bold text-slate-800">Đơn hàng mới nhận</h3>
+                <p class="text-xs text-slate-500">Cập nhật lúc: <%= new Date().toLocaleTimeString('vi-VN') %></p>
+            </div>
+        </div>
+        <a href="/admin/orders" class="text-indigo-600 text-sm font-bold hover:bg-indigo-50 px-4 py-2 rounded-xl transition-all flex items-center gap-1">
+            Xem tất cả 
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+        </a>
+    </div>
+    
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead class="bg-slate-50/80 text-slate-500 text-[11px] font-black uppercase tracking-widest border-b border-slate-100">
+                <tr>
+                    <th class="px-6 py-4">Mã Đơn</th>
+                    <th class="px-6 py-4">Khách hàng</th>
+                    <th class="px-6 py-4 text-center">Trạng thái</th>
+                    <th class="px-6 py-4">Tổng tiền</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                <% if (latestOrders && latestOrders.length > 0) { %>
+                    <% latestOrders.forEach(order => { %>
+                    <tr class="hover:bg-slate-50/80 transition-colors group">
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-1 bg-slate-100 text-slate-600 rounded text-[10px] font-mono font-bold">
+                                #<%= order._id.toString().substring(18).toUpperCase() %>
+                            </span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex flex-col">
+                                <span class="text-sm font-semibold text-slate-700">
+                                    <%= order.userId?.name || 'Khách vãng lai' %>
+                                </span>
+                                <span class="text-[10px] text-slate-400">
+                                    <%= order.userId?.email || 'Không có thông tin' %>
+                                </span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <% 
+                                const statusColors = {
+                                    pending: 'bg-amber-100 text-amber-700',
+                                    processing: 'bg-indigo-100 text-indigo-700',
+                                    shipping: 'bg-blue-100 text-blue-700',
+                                    completed: 'bg-green-100 text-green-700',
+                                    cancelled: 'bg-red-100 text-red-700',
+                                    failed: 'bg-rose-100 text-rose-700',
+                                    returned: 'bg-purple-100 text-purple-700',
+                                    dispute_escalated: 'bg-pink-100 text-pink-700'
+                                };
+                                const statusLabels = {
+                                    pending: 'Chờ duyệt',
+                                    processing: 'Đang xử lý',
+                                    shipping: 'Đang giao',
+                                    completed: 'Thành công',
+                                    cancelled: 'Đã hủy',
+                                    failed: 'Giao lỗi',
+                                    returned: 'Đã hoàn trả',
+                                    dispute_escalated: 'Sàn cần duyệt'
+                                };
+                            %>
+                            <span class="px-3 py-1 <%= statusColors[order.status] || 'bg-slate-100 text-slate-600' %> rounded-full text-[10px] font-black uppercase">
+                                <%= statusLabels[order.status] || order.status %>
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-sm font-bold text-slate-900">
+                            <%= (order.totalAmount || 0).toLocaleString('vi-VN') %> đ
+                        </td>
+                    </tr>
+                    <% }) %>
+                <% } else { %>
+                    <tr>
+                        <td colspan="4" class="px-6 py-12 text-center text-slate-400">
+                            <div class="flex flex-col items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                <p class="italic">Chưa có đơn hàng nào được ghi nhận</p>
+                            </div>
+                        </td>
+                    </tr>
+                <% } %>
+            </tbody>
+        </table>
+    </div>
+</div>

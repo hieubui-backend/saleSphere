@@ -1,0 +1,168 @@
+<div class="mb-8 flex justify-between items-end">
+    <div>
+        <h1 class="text-2xl font-bold text-slate-800">Quản lý danh sách cửa hàng</h1>
+        <p class="text-slate-500 text-sm">Tổng cộng có <%= tenants.length %> đối tác trên hệ thống</p>
+    </div>
+    <a href="/super-admin/tenants/pending" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-700 transition-all">
+        Xem yêu cầu chờ duyệt
+    </a>
+</div>
+
+<form id="addTenantForm" class="mb-4 flex gap-2 items-center">
+    <input type="text" name="name" placeholder="Tên chủ shop" required class="border rounded px-2 py-1" />
+    <input type="text" name="shopName" placeholder="Tên cửa hàng" required class="border rounded px-2 py-1" />
+    <input type="email" name="email" placeholder="Email" required class="border rounded px-2 py-1" />
+    <input type="text" name="slug" placeholder="Slug" required class="border rounded px-2 py-1" />
+    <input type="password" name="password" placeholder="Mật khẩu" required class="border rounded px-2 py-1" />
+    <button type="submit" class="bg-blue-600 text-white px-4 py-1 rounded">Thêm cửa hàng</button>
+</form>
+
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead class="bg-slate-50 text-slate-500 text-xs font-bold uppercase">
+                <tr>
+                    <th class="px-6 py-4">ID</th> <th class="px-6 py-4">Cửa hàng</th>
+                    <th class="px-6 py-4">Tên miền (Slug)</th>
+                    <th class="px-6 py-4">Ngày tham gia</th>
+                    <th class="px-6 py-4">Trạng thái</th>
+                    <th class="px-6 py-4 text-center">Hành động</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                <% tenants.forEach(tenant => { %>
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="px-6 py-4 text-xs font-mono text-slate-400">
+                        #<%= tenant._id.toString().slice(-6).toUpperCase() %>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="font-bold text-slate-700" id="name-<%= tenant._id %>"><%= tenant.name %></div>
+                        <input type="text" id="edit-name-<%= tenant._id %>" value="<%= tenant.name %>" class="hidden border rounded px-2 py-1" />
+                        <div class="text-xs text-slate-400" id="email-<%= tenant._id %>"><%= tenant.email %></div>
+                        <input type="email" id="edit-email-<%= tenant._id %>" value="<%= tenant.email %>" class="hidden border rounded px-2 py-1" />
+                    </td>
+                    <td class="px-6 py-4 text-sm font-mono text-indigo-600">
+                        /<span id="slug-<%= tenant._id %>"><%= tenant.slug %></span>
+                        <input type="text" id="edit-slug-<%= tenant._id %>" value="<%= tenant.slug %>" class="hidden border rounded px-2 py-1" />
+                    </td>
+                    <td class="px-6 py-4 text-sm text-slate-600">
+                        <%= new Date(tenant.createdAt).toLocaleDateString('vi-VN') %>
+                    </td>
+                    <td class="px-6 py-4">
+                        <% if (tenant.status === 'pending') { %>
+                            <span class="px-2 py-1 text-xs font-medium bg-amber-100 text-amber-700 rounded-full">Chờ phê duyệt</span>
+                        <% } else if (tenant.isActive) { %>
+                            <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-700 rounded-full">Đang hoạt động</span>
+                        <% } else { %>
+                            <span class="px-2 py-1 text-xs font-medium bg-red-100 text-red-700 rounded-full">Đã khóa</span>
+                        <% } %>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <div class="flex justify-center gap-2">
+                            <button class="bg-yellow-400 text-white px-2 py-1 rounded" onclick="showEditTenant('<%= tenant._id %>')">Sửa</button>
+                            <button class="bg-red-600 text-white px-2 py-1 rounded" onclick="deleteTenant('<%= tenant._id %>')">Xóa</button>
+                            <button class="bg-green-600 text-white px-2 py-1 rounded hidden" id="save-<%= tenant._id %>" onclick="saveEditTenant('<%= tenant._id %>')">Lưu</button>
+                            <button class="bg-gray-400 text-white px-2 py-1 rounded hidden" id="cancel-<%= tenant._id %>" onclick="cancelEditTenant('<%= tenant._id %>')">Hủy</button>
+                            <% if (tenant.isActive) { %>
+                                <button class="bg-red-500 text-white px-2 py-1 rounded" onclick="toggleTenantStatus('<%= tenant._id %>', false)">Khóa thẻ</button>
+                            <% } else { %>
+                                <button class="bg-emerald-500 text-white px-2 py-1 rounded" onclick="toggleTenantStatus('<%= tenant._id %>', true)">Mở khóa</button>
+                            <% } %>
+                        </div>
+                    </td>
+                </tr>
+                <% }) %>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // Thêm cửa hàng
+    document.getElementById('addTenantForm').onsubmit = async function(e) {
+        e.preventDefault();
+        const form = e.target;
+        const data = {
+            name: form.name.value,
+            shopName: form.shopName.value,
+            email: form.email.value,
+            slug: form.slug.value,
+            password: form.password.value
+        };
+        try {
+            const res = await fetch('/super-admin/tenants', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+                credentials: 'same-origin'
+            });
+            const result = await res.json();
+            if (result.success) location.reload();
+            else alert(result.message);
+        } catch (error) {
+            console.error("Lỗi gửi request:", error);
+            alert("Đã xảy ra lỗi khi thêm cửa hàng.");
+        }
+    };
+
+    // Xóa cửa hàng
+    async function deleteTenant(id) {
+        if (!confirm('Bạn có chắc muốn xóa cửa hàng này?')) return;
+        const res = await fetch(`/super-admin/tenants/${id}`, { method: 'DELETE', credentials: 'same-origin' });
+        const result = await res.json();
+        if (result.success) location.reload();
+        else alert(result.message);
+    }
+
+    // Hiện form sửa
+    function showEditTenant(id) {
+        document.getElementById(`name-${id}`).style.display = 'none';
+        document.getElementById(`email-${id}`).style.display = 'none';
+        document.getElementById(`slug-${id}`).style.display = 'none';
+        document.getElementById(`edit-name-${id}`).classList.remove('hidden');
+        document.getElementById(`edit-email-${id}`).classList.remove('hidden');
+        document.getElementById(`edit-slug-${id}`).classList.remove('hidden');
+        document.getElementById(`save-${id}`).classList.remove('hidden');
+        document.getElementById(`cancel-${id}`).classList.remove('hidden');
+    }
+    
+    function cancelEditTenant(id) {
+        document.getElementById(`name-${id}`).style.display = '';
+        document.getElementById(`email-${id}`).style.display = '';
+        document.getElementById(`slug-${id}`).style.display = '';
+        document.getElementById(`edit-name-${id}`).classList.add('hidden');
+        document.getElementById($`edit-email-${id}`).classList.add('hidden');
+        document.getElementById($`edit-slug-${id}`).classList.add('hidden');
+        document.getElementById(`save-${id}`).classList.add('hidden');
+        document.getElementById(`cancel-${id}`).classList.add('hidden');
+    }
+
+    async function saveEditTenant(id) {
+        const name = document.getElementById(`edit-name-${id}`).value;
+        const email = document.getElementById(`edit-email-${id}`).value;
+        const slug = document.getElementById(`edit-slug-${id}`).value;
+        const res = await fetch(`/super-admin/tenants/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, slug }),
+            credentials: 'same-origin'
+        });
+        const result = await res.json();
+        if (result.success) location.reload();
+        else alert(result.message);
+    }
+
+    // Khóa/Mở khóa cửa hàng
+    async function toggleTenantStatus(id, active) {
+        if (!confirm(active ? 'Bạn có chắc muốn mở khóa cửa hàng này?' : 'Bạn có chắc muốn khóa cửa hàng này?')) return;
+        const res = await fetch(`/super-admin/tenants/${id}/toggle`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isActive: active }),
+            credentials: 'same-origin'
+        });
+        const result = await res.json();
+        if (result.success) location.reload();
+        else alert(result.message);
+    }
+</script>

@@ -1,0 +1,145 @@
+<div class="max-w-4xl mx-auto py-8">
+    <div class="mb-8">
+        <a href="/admin/products" class="text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-2 mb-2 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Quay lại danh sách
+        </a>
+        <h1 class="text-3xl font-extrabold text-slate-900">Thêm sản phẩm mới</h1>
+        <p class="text-slate-500 mt-1">Điền thông tin chi tiết để niêm yết sản phẩm lên cửa hàng của bạn.</p>
+    </div>
+
+    <% if (typeof error !== 'undefined' && error) { %>
+        <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-lg shadow-sm">
+            <div class="flex items-center">
+                <svg class="h-5 w-5 text-red-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+                <p class="text-sm text-red-700 font-medium"><%= error %></p>
+            </div>
+        </div>
+    <% } %>
+
+    <form action="/admin/products/create" method="POST" enctype="multipart/form-data" class="space-y-6" id="productForm">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-2">Tên sản phẩm <span class="text-red-500">*</span></label>
+                        <input type="text" name="name" required 
+                            value="<%= (typeof oldData !== 'undefined' && oldData.name) ? oldData.name : '' %>"
+                            placeholder="Ví dụ: Giày Sneaker Biti's Hunter" 
+                            class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">Giá bán (đ) <span class="text-red-500">*</span></label>
+                            <input type="number" name="price" required min="0" placeholder="0" 
+                                value="<%= (typeof oldData !== 'undefined' && oldData.price) ? oldData.price : '0' %>"
+                                class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">Tồn kho <span class="text-red-500">*</span></label>
+                            <input type="number" name="stock" required min="0" placeholder="0" 
+                                value="<%= (typeof oldData !== 'undefined' && oldData.stock) ? oldData.stock : '0' %>"
+                                class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-2">Danh mục <span class="text-red-500">*</span></label>
+                        <select name="category" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all cursor-pointer bg-white">
+                            <% const cats = [{id:'Electronics', n:'Điện tử'}, {id:'Fashion', n:'Thời trang'}, {id:'Food', n:'Thực phẩm'}, {id:'Other', n:'Khác'}] %>
+                            <% cats.forEach(cat => { %>
+                                <option value="<%= cat.id %>" <%= (typeof oldData !== 'undefined' && oldData.category === cat.id) ? 'selected' : '' %>><%= cat.n %></option>
+                            <% }) %>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-2">Hình ảnh sản phẩm (Tối đa 5)</label>
+                        <div class="relative group">
+                            <div class="border-2 border-dashed border-slate-200 group-hover:border-indigo-400 rounded-2xl p-8 transition-all bg-slate-50 text-center relative overflow-hidden">
+                                <input type="file" name="images" id="imageInput" multiple accept="image/*" 
+                                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                                <div class="space-y-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto text-slate-400 group-hover:text-indigo-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    <p class="text-sm text-slate-500">Kéo thả hoặc <span class="text-indigo-600 font-bold">nhấn để tải ảnh</span></p>
+                                    <p class="text-xs text-slate-400">Định dạng hỗ trợ: JPG, PNG, WEBP, JFIF</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="previewContainer" class="flex flex-wrap gap-4 mt-4"></div>
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-2">Mô tả sản phẩm</label>
+                        <textarea name="description" rows="14" placeholder="Nhập đặc điểm nổi bật của sản phẩm..." 
+                            class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none shadow-inner bg-slate-50/50"><%= typeof oldData !== 'undefined' ? oldData.description : '' %></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-4 pb-12">
+            <a href="/admin/products" class="px-6 py-3 rounded-xl font-bold text-slate-600 hover:bg-slate-100 transition-colors">Hủy bỏ</a>
+            <button type="submit" id="submitBtn" class="px-10 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition-all transform active:scale-95 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                Lưu sản phẩm
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    const imageInput = document.getElementById('imageInput');
+    const previewContainer = document.getElementById('previewContainer');
+    const productForm = document.getElementById('productForm');
+    const submitBtn = document.getElementById('submitBtn');
+
+    // Xử lý xem trước ảnh (Preview)
+    imageInput.addEventListener('change', function() {
+        previewContainer.innerHTML = '';
+        const files = Array.from(this.files).slice(0, 5); // Giới hạn 5 ảnh hiển thị
+        
+        files.forEach(file => {
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    const wrap = document.createElement('div');
+                    wrap.className = 'relative w-24 h-24 rounded-lg overflow-hidden border-2 border-slate-100 shadow-sm group';
+                    wrap.innerHTML = `
+                        <img src="${e.target.result}" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-indigo-600/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                             <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        </div>
+                    `;
+                    previewContainer.appendChild(wrap);
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+    });
+
+    // Hiệu ứng Loading khi gửi form
+    productForm.addEventListener('submit', () => {
+        submitBtn.disabled = true;
+        submitBtn.classList.add('opacity-70', 'cursor-not-allowed');
+        submitBtn.innerHTML = `
+            <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Đang lưu sản phẩm...
+        `;
+    });
+</script>

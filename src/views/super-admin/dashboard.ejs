@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ thống Báo cáo Quản trị | Super Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            scroll-behavior: smooth;
+        }
+        .chart-container { position: relative; height: 320px; width: 100%; }
+        .table-row-hover { transition: all 0.2s ease; }
+        .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .stat-card { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .stat-card:hover { transform: translateY(-6px); }
+        .glass-effect { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); }
+    </style>
+</head>
+<body class="bg-[#f8fafc]">
+
+<div class="min-h-screen p-4 md:p-8 max-w-[1600px] mx-auto">
+    
+    <div class="mb-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div>
+            <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Báo cáo hệ thống</h1>
+            <p class="text-slate-500 font-medium flex items-center gap-2 mt-1">
+                <span class="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse"></span>
+                Phiên làm việc của <span class="text-indigo-600 font-bold"><%= userName %></span>
+            </p>
+        </div>
+        
+        <div class="flex flex-wrap items-center gap-3 bg-white p-2 rounded-2xl shadow-sm border border-slate-200/60">
+            <div class="flex bg-slate-100 p-1 rounded-xl">
+                <% const ranges = [{v:'today', l:'Hôm nay'}, {v:'7days', l:'7 ngày'}, {v:'30days', l:'30 ngày'}] %>
+                <% ranges.forEach(r => { %>
+                    <a href="?range=<%= r.v %>" 
+                       class="px-5 py-2 rounded-lg text-xs font-bold transition-all <%= filters.range === r.v ? 'bg-white text-indigo-600 shadow-md' : 'text-slate-500 hover:text-indigo-600' %>">
+                        <%= r.l %>
+                    </a>
+                <% }) %>
+            </div>
+            
+            <form action="" method="GET" class="flex items-center gap-3 px-3 border-l border-slate-200">
+                <input type="hidden" name="range" value="custom">
+                <div class="flex items-center gap-2">
+                    <input type="date" name="start" value="<%= filters.start %>" class="text-[11px] font-bold border-none focus:ring-0 p-0 text-slate-600 bg-transparent cursor-pointer">
+                    <span class="text-slate-300 text-xs"><i class="bi bi-arrow-right"></i></span>
+                    <input type="date" name="end" value="<%= filters.end %>" class="text-[11px] font-bold border-none focus:ring-0 p-0 text-slate-600 bg-transparent cursor-pointer">
+                </div>
+                <button type="submit" class="w-9 h-9 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 flex items-center justify-center">
+                    <i class="bi bi-funnel-fill"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        <div class="stat-card group bg-white p-7 rounded-[2rem] shadow-sm border border-slate-100 relative overflow-hidden">
+            <div class="absolute -right-4 -top-4 w-24 h-24 bg-indigo-50 rounded-full opacity-50 group-hover:scale-150 transition-transform duration-700"></div>
+            <div class="relative z-10">
+                <div class="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center text-white mb-6 shadow-xl shadow-indigo-100">
+                    <i class="bi bi-shop text-2xl"></i>
+                </div>
+                <p class="text-slate-500 text-sm font-bold uppercase tracking-wider">Cửa hàng</p>
+                <h2 class="text-4xl font-black text-slate-900 tracking-tighter mt-1"><%= stats.tenants %></h2>
+            </div>
+        </div>
+
+        <div class="stat-card group bg-white p-7 rounded-[2rem] shadow-sm border border-slate-100 relative overflow-hidden">
+            <div class="absolute -right-4 -top-4 w-24 h-24 bg-purple-50 rounded-full opacity-50 group-hover:scale-150 transition-transform duration-700"></div>
+            <div class="relative z-10">
+                <div class="w-14 h-14 bg-purple-600 rounded-2xl flex items-center justify-center text-white mb-6 shadow-xl shadow-purple-100">
+                    <i class="bi bi-people text-2xl"></i>
+                </div>
+                <p class="text-slate-500 text-sm font-bold uppercase tracking-wider">Khách hàng</p>
+                <h2 class="text-4xl font-black text-slate-900 tracking-tighter mt-1"><%= stats.customers %></h2>
+            </div>
+        </div>
+
+        <div class="stat-card group bg-white p-7 rounded-[2rem] shadow-sm border border-slate-100 relative overflow-hidden">
+            <div class="absolute -right-4 -top-4 w-24 h-24 bg-orange-50 rounded-full opacity-50 group-hover:scale-150 transition-transform duration-700"></div>
+            <div class="relative z-10">
+                <div class="w-14 h-14 bg-orange-500 rounded-2xl flex items-center justify-center text-white mb-6 shadow-xl shadow-orange-100">
+                    <i class="bi bi-cart-check text-2xl"></i>
+                </div>
+                <p class="text-slate-500 text-sm font-bold uppercase tracking-wider">Tổng đơn hàng</p>
+                <h2 class="text-4xl font-black text-slate-900 tracking-tighter mt-1"><%= stats.totalOrders %></h2>
+            </div>
+        </div>
+
+        <div class="stat-card group bg-white p-7 rounded-[2rem] shadow-sm border border-slate-100 relative overflow-hidden">
+            <div class="absolute -right-4 -top-4 w-24 h-24 bg-emerald-50 rounded-full opacity-50 group-hover:scale-150 transition-transform duration-700"></div>
+            <div class="relative z-10">
+                <div class="w-14 h-14 bg-emerald-500 rounded-2xl flex items-center justify-center text-white mb-6 shadow-xl shadow-emerald-100">
+                    <i class="bi bi-currency-dollar text-2xl"></i>
+                </div>
+                <p class="text-slate-500 text-sm font-bold uppercase tracking-wider">Doanh thu</p>
+                <h2 class="text-3xl font-black text-slate-900 tracking-tighter mt-1">
+                    <%= (stats.totalRevenue || 0).toLocaleString('vi-VN') %><span class="text-lg font-medium text-slate-400 ml-1">₫</span>
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
+        <div class="lg:col-span-2 bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h3 class="text-xl font-extrabold text-slate-800">Xu hướng tăng trưởng</h3>
+                    <p class="text-sm text-slate-400 font-medium">Theo dõi doanh thu theo thời gian</p>
+                </div>
+                <div class="flex items-center gap-2 px-4 py-1.5 bg-indigo-50 text-indigo-600 rounded-full text-[11px] font-bold uppercase tracking-wider">
+                    <span class="w-2 h-2 bg-indigo-600 rounded-full animate-pulse"></span> Dữ liệu thực
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="revenueChart"></canvas>
+            </div>
+        </div>
+
+        <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+            <h3 class="text-xl font-extrabold text-slate-800 mb-2 text-center">Trạng thái đơn hàng</h3>
+            <p class="text-sm text-slate-400 font-medium text-center mb-8">Cấu trúc đơn hàng toàn sàn</p>
+            <div class="chart-container flex items-center justify-center">
+                <canvas id="statusPieChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-[2.5rem] shadow-sm border border-rose-100 overflow-hidden mb-10">
+        <div class="p-8 border-b border-rose-50 flex justify-between items-center bg-gradient-to-r from-white to-rose-50/30">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center">
+                    <i class="bi bi-shield-exclamation text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-black text-slate-800 tracking-tight">CẦN XỬ LÝ GẤP</h3>
+                    <p class="text-sm text-rose-500/80 font-bold uppercase tracking-widest text-[10px]">Khiếu nại & Sự cố vận hành</p>
+                </div>
+            </div>
+            <a href="/super-admin/disputes" class="text-xs font-bold text-rose-600 hover:text-rose-700 flex items-center gap-2 bg-rose-50 px-4 py-2 rounded-xl transition-all">
+                Xem tất cả tranh chấp <i class="bi bi-arrow-right"></i>
+            </a>
+        </div>
+        <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left">
+                <thead class="bg-rose-50/20 text-slate-400 text-[11px] font-bold uppercase tracking-[0.15em] border-b border-rose-50">
+                    <tr>
+                        <th class="px-10 py-5">Đơn hàng / Shop</th>
+                        <th class="px-8 py-5">Trạng thái / Lý do</th>
+                        <th class="px-8 py-5 text-right">Giá trị</th>
+                        <th class="px-10 py-5 text-center">Thời gian</th>
+                        <th class="px-10 py-5 text-center">Hành động</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-50">
+                    <% if (stats.actionRequired && stats.actionRequired.length > 0) { %>
+                        <% stats.actionRequired.forEach(order => { %>
+                        <tr class="table-row-hover hover:bg-rose-50/20 transition-colors">
+                            <td class="px-10 py-6">
+                                <div class="font-black text-slate-800 text-lg">#<%= order._id.toString().slice(-8).toUpperCase() %></div>
+                                <div class="text-xs text-indigo-600 font-bold flex items-center gap-1">
+                                    <i class="bi bi-shop"></i> <%= order.shopName %>
+                                </div>
+                            </td>
+                            <td class="px-8 py-6">
+                                <div class="flex flex-col gap-1">
+                                    <span class="w-fit px-3 py-1 bg-amber-100 text-amber-700 rounded-lg text-[10px] font-black uppercase">
+                                        <%= order.status %>
+                                    </span>
+                                    <span class="text-xs text-rose-500 font-medium italic">
+                                        <i class="bi bi-chat-square-text-fill"></i> <%= order.disputeReason || 'Chưa có lý do chi tiết' %>
+                                    </span>
+                                </div>
+                            </td>
+                            <td class="px-8 py-6 text-right font-black text-slate-800">
+                                <%= (order.totalAmount || 0).toLocaleString('vi-VN') %>₫
+                            </td>
+                            <td class="px-10 py-6 text-center text-xs text-slate-400 font-bold">
+                                <%= new Date(order.updatedAt).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'}) %>
+                            </td>
+                            <td class="px-10 py-6 text-center">
+                                <button onclick="openModal('<%= order._id %>', '<%= order.shopName %>', '<%= (order.totalAmount || 0).toLocaleString('vi-VN') %>', '<%= order.disputeReason %>', '<%= order.customerName %>')" 
+                                        class="w-12 h-12 bg-white border-2 border-slate-100 rounded-2xl text-slate-400 hover:text-rose-600 hover:border-rose-200 hover:shadow-xl hover:shadow-rose-100 transition-all flex items-center justify-center mx-auto">
+                                    <i class="bi bi-lightning-charge-fill"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <% }) %>
+                    <% } else { %>
+                        <tr>
+                            <td colspan="5" class="p-20 text-center">
+                                <div class="flex flex-col items-center opacity-40">
+                                    <i class="bi bi-clipboard-check text-5xl mb-4"></i>
+                                    <p class="text-lg font-bold">Tất cả đều ổn! Không có sự cố nào.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    <% } %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden mb-10">
+        <div class="p-8 border-b border-slate-50 flex justify-between items-center">
+            <h3 class="text-xl font-black text-slate-800 flex items-center gap-3">
+                <i class="bi bi-fire text-orange-500"></i> TOP CỬA HÀNG XUẤT SẮC
+            </h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="bg-slate-50/50 text-slate-400 text-[11px] font-bold uppercase tracking-widest">
+                    <tr>
+                        <th class="px-10 py-5">Xếp hạng</th>
+                        <th class="px-8 py-5 text-center">Đơn hàng</th>
+                        <th class="px-8 py-5 text-right">Doanh thu</th>
+                        <th class="px-10 py-5">Tỷ lệ hài lòng</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-50">
+                    <% if (stats.topTenants && stats.topTenants.length > 0) { %>
+                        <% stats.topTenants.forEach((shop, index) => { %>
+                        <tr class="table-row-hover hover:bg-slate-50/50 transition-colors">
+                            <td class="px-10 py-6">
+                                <div class="flex items-center gap-5">
+                                    <span class="text-2xl font-black <%= index < 3 ? 'text-orange-500' : 'text-slate-300' %> w-8">#<%= index + 1 %></span>
+                                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center font-bold text-slate-500 border border-white shadow-sm uppercase">
+                                        <%= (shop.name || 'S').charAt(0) %>
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-slate-800 text-base"><%= shop.name %></div>
+                                        <div class="text-[10px] text-emerald-500 font-bold uppercase flex items-center gap-1">
+                                            <i class="bi bi-patch-check-fill"></i> Verified Store
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-8 py-6 text-center font-bold text-slate-600"><%= shop.orderCount %></td>
+                            <td class="px-8 py-6 text-right font-black text-slate-900">
+                                <%= (shop.revenue || 0).toLocaleString('vi-VN') %><span class="text-[11px] ml-0.5">₫</span>
+                            </td>
+                            <td class="px-10 py-6">
+                                <div class="flex items-center gap-4">
+                                    <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden min-w-[100px]">
+                                        <div class="h-full <%= (shop.returnRate || 0) > 5 ? 'bg-rose-500' : 'bg-emerald-500' %>" style="width: <%= 100 - (shop.returnRate || 0) %>%"></div>
+                                    </div>
+                                    <span class="text-xs font-black text-slate-500"><%= 100 - (shop.returnRate || 0) %>%</span>
+                                </div>
+                            </td>
+                        </tr>
+                        <% }) %>
+                    <% } %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <h3 class="text-xl font-extrabold text-slate-800 mb-6 flex items-center gap-3">
+        <i class="bi bi-truck text-indigo-500"></i> Theo dõi vận chuyển
+    </h3>
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-10">
+        <% 
+        const statusItems = [
+            { label: 'Đang giao', val: stats.shipping, color: 'sky', icon: 'bi-box-seam' },
+            { label: 'Thành công', val: stats.completedToday, color: 'emerald', icon: 'bi-check2-all' },
+            { label: 'Đơn bị hủy', val: stats.cancelled, color: 'slate', icon: 'bi-x-lg' },
+            { label: 'Thất bại', val: stats.failed, color: 'rose', icon: 'bi-info-circle' },
+            { label: 'Hoàn trả', val: stats.returned, color: 'amber', icon: 'bi-arrow-counterclockwise' }
+        ] 
+        %>
+        <% statusItems.forEach(item => { %>
+        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 border-b-4 border-b-<%= item.color %>-500 stat-card">
+            <div class="flex flex-col items-center text-center">
+                <div class="w-12 h-12 bg-<%= item.color %>-50 rounded-2xl flex items-center justify-center text-<%= item.color %>-600 mb-4">
+                    <i class="bi <%= item.icon %> text-xl"></i>
+                </div>
+                <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1"><%= item.label %></p>
+                <h2 class="text-3xl font-black text-slate-800"><%= item.val || 0 %></h2>
+            </div>
+        </div>
+        <% }) %>
+    </div>
+</div>
+
+<div id="actionModal" class="hidden fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[100] items-center justify-center p-4">
+    <div class="bg-white rounded-[2.5rem] shadow-2xl max-w-lg w-full overflow-hidden transform transition-all animate-in fade-in zoom-in duration-300">
+        <div class="p-8 border-b border-slate-50 flex justify-between items-center bg-indigo-50/30">
+            <div>
+                <h3 class="text-2xl font-black text-slate-800">Trọng tài phán quyết</h3>
+                <p class="text-xs text-indigo-600 font-bold uppercase tracking-[0.2em] mt-1" id="modalOrderId"></p>
+            </div>
+            <button onclick="closeModal()" class="w-12 h-12 flex items-center justify-center rounded-2xl hover:bg-white text-slate-400 hover:text-slate-600 transition-all">
+                <i class="bi bi-x-lg text-lg"></i>
+            </button>
+        </div>
+        <div class="p-10">
+            <div id="modalBody" class="space-y-6"></div>
+            <div class="mt-10 grid grid-cols-2 gap-4">
+                <button id="btnApprove" onclick="updateOrderStatus('approved')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-5 rounded-[1.5rem] transition-all shadow-xl shadow-indigo-100 flex items-center justify-center gap-2">
+                    <i class="bi bi-person-check-fill text-xl"></i> Hoàn tiền khách
+                </button>
+                <button id="btnReject" onclick="updateOrderStatus('rejected')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-5 rounded-[1.5rem] transition-all flex items-center justify-center gap-2">
+                    <i class="bi bi-shop text-lg"></i> Trả tiền Shop
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        Chart.defaults.font.family = "'Plus Jakarta Sans', sans-serif";
+        Chart.defaults.color = '#94a3b8';
+
+        // 1. Revenue Chart
+        const ctxRev = document.getElementById('revenueChart').getContext('2d');
+        const labels = <%- JSON.stringify(stats.chartLabels || []) %>;
+        const dataValues = <%- JSON.stringify(stats.chartValues || []) %>;
+        
+        const gradient = ctxRev.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(79, 70, 229, 0.15)');
+        gradient.addColorStop(1, 'rgba(79, 70, 229, 0)');
+
+        new Chart(ctxRev, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Doanh thu',
+                    data: dataValues,
+                    borderColor: '#4f46e5',
+                    borderWidth: 4,
+                    tension: 0.45,
+                    fill: true,
+                    backgroundColor: gradient,
+                    pointRadius: 6,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#4f46e5',
+                    pointBorderWidth: 3,
+                    pointHoverRadius: 8,
+                    pointHoverBackgroundColor: '#4f46e5',
+                    pointHoverBorderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { 
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#1e293b',
+                        padding: 15,
+                        titleFont: { size: 14, weight: 'bold' },
+                        callbacks: {
+                            label: (ctx) => ' ' + ctx.raw.toLocaleString('vi-VN') + ' ₫'
+                        }
+                    }
+                },
+                scales: {
+                    y: { 
+                        beginAtZero: true,
+                        grid: { color: '#f1f5f9' },
+                        ticks: { 
+                            callback: v => v.toLocaleString('vi-VN') + ' ₫',
+                            font: { weight: '600' }
+                        }
+                    },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+
+        // 2. Status Pie Chart
+        const ctxPie = document.getElementById('statusPieChart').getContext('2d');
+        new Chart(ctxPie, {
+            type: 'doughnut',
+            data: {
+                labels: ['Đang giao', 'Thành công', 'Đã hủy', 'Hoàn trả'],
+                datasets: [{
+                    data: [
+                        <%= stats.shipping || 0 %>, 
+                        <%= stats.completedToday || 0 %>, 
+                        <%= stats.cancelled || 0 %>, 
+                        <%= stats.returned || 0 %>
+                    ],
+                    backgroundColor: ['#38bdf8', '#10b981', '#94a3b8', '#f59e0b'],
+                    hoverOffset: 15,
+                    borderWidth: 8,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: { 
+                        position: 'bottom',
+                        labels: { 
+                            usePointStyle: true, 
+                            pointStyle: 'circle',
+                            padding: 25,
+                            font: { weight: '700', size: 12 }
+                        }
+                    }
+                }
+            }
+        });
+    });
+
+    // Modal & Logic
+    const modal = document.getElementById('actionModal');
+    let currentId = null;
+
+    function openModal(id, shop, amount, reason, customer) {
+        currentId = id;
+        document.getElementById('modalOrderId').innerText = 'Tranh chấp đơn: #' + id.slice(-8).toUpperCase();
+        document.getElementById('modalBody').innerHTML = `
+            <div class="p-6 bg-slate-50 rounded-[1.5rem] border border-slate-100 grid grid-cols-2 gap-4">
+                <div>
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cửa hàng bị khiếu nại</p>
+                    <p class="font-extrabold text-slate-800 text-lg">${shop}</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Giá trị đơn</p>
+                    <p class="font-black text-indigo-600 text-xl">${amount}₫</p>
+                </div>
+            </div>
+
+            <div class="p-5 bg-rose-50 border border-rose-100 rounded-2xl">
+                <p class="text-[10px] font-black text-rose-400 uppercase tracking-widest mb-1">Khiếu nại từ: ${customer}</p>
+                <p class="text-sm text-slate-700 font-bold italic">"${reason || 'Không có mô tả chi tiết'}"</p>
+            </div>
+
+            <div class="space-y-3">
+                <label class="text-xs font-black text-slate-500 uppercase flex items-center gap-2">
+                    <i class="bi bi-pencil-square text-indigo-500"></i> Phán quyết của Admin:
+                </label>
+                <textarea id="adminNote" class="w-full p-5 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm outline-none focus:border-indigo-500 focus:bg-white transition-all" rows="3" placeholder="Ghi chú lý do phán quyết để thông báo cho khách và shop..."></textarea>
+            </div>
+        `;
+        modal.classList.replace('hidden', 'flex');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+        modal.classList.replace('flex', 'hidden');
+        document.body.style.overflow = 'auto';
+    }
+
+    async function updateOrderStatus(action) {
+        const note = document.getElementById('adminNote').value;
+        if(!note) return alert('Vui lòng nhập ghi chú phán quyết.');
+        
+        const btnApprove = document.getElementById('btnApprove');
+        const btnReject = document.getElementById('btnReject');
+        
+        btnApprove.disabled = true;
+        btnReject.disabled = true;
+
+        const verdict = (action === 'approved') ? 'REFUND_CUSTOMER' : 'REJECTED';
+
+        try {
+            const response = await fetch(`/super-admin/orders/${currentId}/resolve-dispute-final`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    verdict: verdict, 
+                    adminNote: note 
+                })
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                alert(`Thành công: Đã thực thi phán quyết.`);
+                closeModal();
+                location.reload(); 
+            } else {
+                alert('Lỗi: ' + (result.message || 'Không thể thực thi'));
+                btnApprove.disabled = false;
+                btnReject.disabled = false;
+            }
+        } catch (error) {
+            console.error('Fetch Error:', error);
+            alert('Lỗi kết nối Server!');
+            btnApprove.disabled = false;
+            btnReject.disabled = false;
+        }
+    }
+
+    window.onclick = (e) => { if (e.target == modal) closeModal(); }
+</script>
+</body>
+</html>
