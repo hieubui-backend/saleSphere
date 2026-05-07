@@ -12,6 +12,7 @@ const http = require('http');
 const { Server } = require('socket.io'); 
 require('dotenv').config();
 const errorHandler = require('./middlewares/error.middleware');
+const container = require('./di/container');
 
 const app = express();
 const server = http.createServer(app); 
@@ -54,6 +55,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Truyền dữ liệu session sang giao diện (EJS)
 app.use((req, res, next) => {
+    req.container = container; // Inject Awilix container
     res.locals.user = req.session.user || null;
     res.locals.customer = req.session.customer || null; 
     res.locals.path = req.path;
@@ -98,6 +100,7 @@ app.use('/super-admin', require('./modules/super-admin/super-admin.route'));
 // API Routes
 app.get('/api', (req, res) => res.status(200).json({ message: 'API ROOT OK' }));
 app.use('/api/orders', limiter, require('./modules/order/order.route'));
+app.use('/api/users', require('./presentation/routes/user.route'));
 
 // Xử lý lỗi 404 - SỬA LẠI ĐƯỜNG DẪN RENDER
 app.use((req, res) => {

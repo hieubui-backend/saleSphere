@@ -9,6 +9,7 @@ const cors = require('cors'); // Thêm cors để xử lý request từ client k
 const http = require('http'); // Thêm http server để kết hợp socket.io
 const { Server } = require('socket.io'); 
 require('dotenv').config();
+const container = require('./di/container');
 
 const app = express();
 // Khởi tạo HTTP Server
@@ -47,6 +48,7 @@ app.use(session({
 
 // --- 4. MIDDLEWARE TRUYỀN BIẾN TOÀN CỤC CHO GIAO DIỆN ---
 app.use((req, res, next) => {
+    req.container = container; // Inject DI container
     res.locals.user = req.session.user || null;         // Dành cho Admin/Super-Admin
     res.locals.customer = req.session.customer || null; // Dành cho Người mua
     res.locals.io = io; // Truyền io sang res.locals để sử dụng trong controller

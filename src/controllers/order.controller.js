@@ -3,7 +3,7 @@ const orderService = require('../services/order.service');
 const Tenant = require('../modules/tenant/tenant.model');
 const Product = require('../modules/product/product.model');
 const Order = require('../modules/order/order.model');
-const User = require('../modules/user/user.model');
+const User = require('../infrastructure/database/models/user.model');
 const mongoose = require('mongoose');
 
 /**

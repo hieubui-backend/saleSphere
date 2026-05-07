@@ -1,20 +1,22 @@
 const asyncHandler = require('express-async-handler');
-const userService = require('../services/user.service');
 
 exports.register = asyncHandler(async (req, res) => {
-    const user = await userService.register(req.body);
+    const { userUseCases } = req.container.cradle;
+    const user = await userUseCases.register(req.body);
     res.status(201).json(user);
 });
 
 exports.login = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
-    const result = await userService.login(email, password);
+    const { userUseCases } = req.container.cradle;
+    const result = await userUseCases.login(email, password);
     res.status(200).json(result);
 });
 
 exports.getUsers = asyncHandler(async (req, res) => {
     const { page, limit } = req.query;
-    const result = await userService.getAllUsers(req.user.tenantId, { page, limit });
+    const { userUseCases } = req.container.cradle;
+    const result = await userUseCases.getAllUsers(req.user.tenantId, { page, limit });
     res.status(200).json({
         success: true,
         total: result.count,
@@ -23,7 +25,8 @@ exports.getUsers = asyncHandler(async (req, res) => {
 });
 
 exports.updateUser = asyncHandler(async (req, res) => {
-    const updated = await userService.updateUser(req.params.id, req.user.tenantId, req.body);
+    const { userUseCases } = req.container.cradle;
+    const updated = await userUseCases.updateUser(req.params.id, req.user.tenantId, req.body);
     if (!updated) {
         res.status(404);
         throw new Error('Không tìm thấy người dùng');
@@ -32,7 +35,8 @@ exports.updateUser = asyncHandler(async (req, res) => {
 });
 
 exports.deleteUser = asyncHandler(async (req, res) => {
-    const deleted = await userService.deleteUser(req.params.id, req.user.tenantId);
+    const { userUseCases } = req.container.cradle;
+    const deleted = await userUseCases.deleteUser(req.params.id, req.user.tenantId);
     if (!deleted) {
         res.status(404);
         throw new Error('Xóa thất bại: Người dùng không tồn tại');

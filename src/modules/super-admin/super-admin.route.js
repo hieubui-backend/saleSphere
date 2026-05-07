@@ -231,7 +231,7 @@ router.post('/orders/:orderId/resolve-dispute-final', isAuthenticated, checkRole
 });
 
 const tenantController = require('../../controllers/tenant.controller');
-const authController = require('../../controllers/auth.controller');
+const authController = require('../../presentation/controllers/auth.controller');
 
 // ==========================================
 // 3. QUẢN LÝ CỬA HÀNG (TENANTS)
