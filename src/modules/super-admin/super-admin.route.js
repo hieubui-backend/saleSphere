@@ -38,7 +38,7 @@ router.patch('/tenants/:id/toggle', isAuthenticated, checkRole('super_admin'), a
         await tenant.save();
 
         // Ẩn hoặc hiện tất cả sản phẩm của shop này
-        const Product = require('../product/product.model');
+        const Product = require('../../infrastructure/database/models/product.model');
         await Product.updateMany(
             { tenantId: tenant._id },
             { $set: { isActive: !!isActive } }
@@ -55,7 +55,7 @@ const mongoose = require('mongoose');
 const Tenant = require('../tenant/tenant.model');
 const Customer = require('../customer/customer.model'); 
 const Order = require('../order/order.model');
-const Product = require('../product/product.model');
+const Product = require('../../infrastructure/database/models/product.model');
 
 // --- IMPORT SERVICES ---
 const orderService = require('../../services/order.service');

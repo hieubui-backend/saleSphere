@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Order = require('./order.model');
-const Product = require('../product/product.model');
+const Product = require('../../infrastructure/database/models/product.model');
 
 /**
  * POST /api/webhook/logistics

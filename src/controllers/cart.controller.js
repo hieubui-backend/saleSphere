@@ -1,5 +1,5 @@
 const Cart = require('../modules/cart/cart.model'); // Đảm bảo đường dẫn đúng tới model của bạn
-const Product = require('../modules/product/product.model');
+const Product = require('../infrastructure/database/models/product.model');
 const orderService = require('../services/order.service');
 
 // ==========================================

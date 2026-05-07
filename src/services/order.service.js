@@ -1,5 +1,5 @@
 const Order = require('../modules/order/order.model');
-const Product = require('../modules/product/product.model');
+const Product = require('../infrastructure/database/models/product.model');
 const Customer = require('../modules/customer/customer.model');
 const Tenant = require('../modules/tenant/tenant.model');
 const mongoose = require('mongoose');

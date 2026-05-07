@@ -1,12 +1,9 @@
 const asyncHandler = require('express-async-handler');
-const productService = require('../services/product.service');
 
-/**
- * 1. LẤY DANH SÁCH SẢN PHẨM (Hỗ trợ EJS và JSON)
- */
 exports.getProducts = asyncHandler(async (req, res) => {
     const tenantId = req.session?.user?.tenantId || req.user?.tenantId;
-    const result = await productService.getAllProducts(tenantId, req.query);
+    const { productUseCases } = req.container.cradle;
+    const result = await productUseCases.getAllProducts(tenantId, req.query);
     
     if (req.accepts('html') && req.session?.user) {
         return res.render('products', { 
@@ -18,15 +15,9 @@ exports.getProducts = asyncHandler(async (req, res) => {
         });
     }
 
-    res.status(200).json({
-        success: true,
-        data: result.products
-    });
+    res.status(200).json({ success: true, data: result.products });
 });
 
-/**
- * 2. TRANG THÊM SẢN PHẨM (Web Render)
- */
 exports.getCreateProductPage = (req, res) => {
     res.render('product-create', { 
         title: 'Thêm sản phẩm mới',
@@ -37,12 +28,10 @@ exports.getCreateProductPage = (req, res) => {
     });
 };
 
-/**
- * 3. TẠO SẢN PHẨM MỚI (Xử lý đồng bộ image và images)
- */
 exports.createProduct = asyncHandler(async (req, res) => {
     try {
         const tenantId = req.session?.user?.tenantId || req.user?.tenantId;
+        const { productUseCases } = req.container.cradle;
         
         const productData = {
             ...req.body,
@@ -52,21 +41,16 @@ exports.createProduct = asyncHandler(async (req, res) => {
             isActive: true
         };
 
-        // XỬ LÝ ẢNH: Đảm bảo khớp với giao diện Home.ejs
         if (req.files && req.files.length > 0) {
-            // Lưu mảng đường dẫn cho trường 'images'
             productData.images = req.files.map(file => `/uploads/products/${file.filename}`);
-            
-            // QUAN TRỌNG: Lưu ảnh đầu tiên vào trường 'image' để hiển thị ở trang chủ
             productData.image = `/uploads/products/${req.files[0].filename}`;
         } else {
-            // Ảnh mặc định nếu không có upload
             const defaultPath = '/images/default-product.png';
             productData.images = [defaultPath];
             productData.image = defaultPath;
         }
 
-        const newProduct = await productService.createProduct(productData);
+        const newProduct = await productUseCases.createProduct(productData);
         
         if (req.accepts('html')) {
             return res.redirect('/admin/products');
@@ -88,12 +72,10 @@ exports.createProduct = asyncHandler(async (req, res) => {
     }
 });
 
-/**
- * 4. TRANG SỬA SẢN PHẨM
- */
 exports.getProductById = asyncHandler(async (req, res) => {
     const tenantId = req.session?.user?.tenantId || req.user?.tenantId;
-    const product = await productService.getProductById(req.params.id, tenantId);
+    const { productUseCases } = req.container.cradle;
+    const product = await productUseCases.getProductById(req.params.id, tenantId);
     
     if (!product) {
         if (req.accepts('html')) return res.status(404).render('errors/404', { layout: false });
@@ -113,24 +95,21 @@ exports.getProductById = asyncHandler(async (req, res) => {
     res.status(200).json({ success: true, data: product });
 });
 
-/**
- * 5. CẬP NHẬT SẢN PHẨM
- */
 exports.updateProduct = asyncHandler(async (req, res) => {
     try {
         const tenantId = req.session?.user?.tenantId || req.user?.tenantId;
+        const { productUseCases } = req.container.cradle;
         const updateData = { ...req.body };
         
         if (updateData.price) updateData.price = Number(updateData.price);
         if (updateData.stock) updateData.stock = Number(updateData.stock);
 
-        // Cập nhật lại cả 2 trường nếu có file mới
         if (req.files && req.files.length > 0) {
             updateData.images = req.files.map(file => `/uploads/products/${file.filename}`);
             updateData.image = `/uploads/products/${req.files[0].filename}`;
         }
 
-        const updatedProduct = await productService.updateProduct(req.params.id, tenantId, updateData);
+        const updatedProduct = await productUseCases.updateProduct(req.params.id, tenantId, updateData);
         
         if (req.accepts('html')) {
             return res.redirect('/admin/products');
@@ -143,12 +122,10 @@ exports.updateProduct = asyncHandler(async (req, res) => {
     }
 });
 
-/**
- * 6. XÓA SẢN PHẨM
- */
 exports.deleteProduct = asyncHandler(async (req, res) => {
     const tenantId = req.session?.user?.tenantId || req.user?.tenantId;
-    await productService.deleteProduct(req.params.id, tenantId);
+    const { productUseCases } = req.container.cradle;
+    await productUseCases.deleteProduct(req.params.id, tenantId);
     
     if (req.accepts('html')) {
         return res.redirect('/admin/products');

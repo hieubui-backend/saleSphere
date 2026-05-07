@@ -3,7 +3,7 @@ const router = express.Router();
 
 // --- IMPORT CONTROLLERS ---
 // Controller xử lý logic chính cho từng module
-const productController = require('../../controllers/product.controller');
+const productController = require('../../presentation/controllers/product.controller');
 const authController = require('../../presentation/controllers/auth.controller');
 const orderController = require('../../controllers/order.controller');
 
