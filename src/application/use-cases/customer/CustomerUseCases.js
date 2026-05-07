@@ -22,6 +22,10 @@ class CustomerUseCases {
         return customer;
     }
 
+    async getAllCustomers(filter = {}) {
+        return await this.customerRepository.findAll(filter);
+    }
+
     async addToCart(customerId, { productId, tenantId, price }) {
         let cart = await this.Cart.findOne({ customerId });
 

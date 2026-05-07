@@ -1,6 +1,7 @@
 class TenantUseCases {
-    constructor({ tenantRepository }) {
+    constructor({ tenantRepository, productRepository }) {
         this.tenantRepository = tenantRepository;
+        this.productRepository = productRepository;
     }
 
     async createTenant({ name, shopName, email, password, slug }) {
@@ -31,13 +32,24 @@ class TenantUseCases {
         return await this.tenantRepository.findAll(filter);
     }
 
-    async toggleTenantStatus(id) {
+    async toggleTenantStatus(id, isActiveForce = null) {
         const tenant = await this.tenantRepository.findById(id);
         if (!tenant) throw new Error('Không tìm thấy cửa hàng!');
 
-        tenant.isActive = !tenant.isActive;
-        tenant.status = tenant.isActive ? 'active' : 'blocked';
+        const newStatus = isActiveForce !== null ? !!isActiveForce : !tenant.isActive;
+        
+        tenant.isActive = newStatus;
+        tenant.status = newStatus ? 'active' : 'blocked';
         await tenant.save();
+
+        // Ẩn hoặc hiện tất cả sản phẩm của shop này
+        if (this.productRepository && this.productRepository.updateOne) {
+            await this.productRepository.productModel.updateMany(
+                { tenantId: tenant._id },
+                { $set: { isActive: newStatus } }
+            );
+        }
+
         return tenant;
     }
 }

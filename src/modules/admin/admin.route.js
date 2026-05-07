@@ -5,7 +5,7 @@ const router = express.Router();
 // Controller xử lý logic chính cho từng module
 const productController = require('../../presentation/controllers/product.controller');
 const authController = require('../../presentation/controllers/auth.controller');
-const orderController = require('../../controllers/order.controller');
+const orderController = require('../../presentation/controllers/order.controller');
 
 // --- IMPORT MIDDLEWARES ---
 // Middleware xử lý file upload (sử dụng Multer)
