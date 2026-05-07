@@ -1,6 +1,6 @@
 const asyncHandler = require('express-async-handler');
 const orderService = require('../services/order.service');
-const Tenant = require('../modules/tenant/tenant.model');
+const Tenant = require('../infrastructure/database/models/tenant.model');
 const Product = require('../infrastructure/database/models/product.model');
 const Order = require('../modules/order/order.model');
 const User = require('../infrastructure/database/models/user.model');

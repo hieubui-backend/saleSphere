@@ -90,7 +90,7 @@ exports.checkRole = (...roles) => {
  * Dùng cho các route seller cần check nhanh trạng thái shop
  */
 exports.isAccountApproved = async (req, res, next) => {
-    const Tenant = require('../modules/tenant/tenant.model');
+    const Tenant = require('../infrastructure/database/models/tenant.model');
     const tenantId = req.session?.tenant?._id || req.user?.tenantId;
 
     if (!tenantId) return next();

@@ -52,7 +52,7 @@ router.patch('/tenants/:id/toggle', isAuthenticated, checkRole('super_admin'), a
 const mongoose = require('mongoose');
 
 // --- IMPORT MODELS ---
-const Tenant = require('../tenant/tenant.model');
+const Tenant = require('../../infrastructure/database/models/tenant.model');
 const Customer = require('../customer/customer.model'); 
 const Order = require('../order/order.model');
 const Product = require('../../infrastructure/database/models/product.model');
@@ -230,7 +230,7 @@ router.post('/orders/:orderId/resolve-dispute-final', isAuthenticated, checkRole
     }
 });
 
-const tenantController = require('../../controllers/tenant.controller');
+const tenantController = require('../../presentation/controllers/tenant.controller');
 const authController = require('../../presentation/controllers/auth.controller');
 
 // ==========================================
