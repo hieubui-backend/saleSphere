@@ -17,7 +17,7 @@ class ShippingCalculator {
     static calculateFee(region) {
         if (!region) return this.REGION_RATES['DEFAULT'];
         
-        const normalizedRegion = region.toUpperCase().replace(/\s+/g, '_');
+        const normalizedRegion = region.trim().toUpperCase().replace(/\s+/g, '_');
         
         return this.REGION_RATES[normalizedRegion] || this.REGION_RATES['DEFAULT'];
     }
