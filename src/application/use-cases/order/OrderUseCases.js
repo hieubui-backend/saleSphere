@@ -1,23 +1,22 @@
 const mongoose = require('mongoose');
 
 class OrderUseCases {
-    constructor({ orderRepository, productRepository, customerRepository, tenantRepository }) {
+    constructor({ orderRepository, productRepository, customerRepository }) {
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
         this.customerRepository = customerRepository;
-        this.tenantRepository = tenantRepository;
     }
 
-    async createOrder(tenantId, userId, { items }) {
+    async createOrder(userId, { items, paymentMethod = 'cod', shippingAddress, region = 'DEFAULT' }) {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
-            let totalAmount = 0;
+            let subtotal = 0;
             const orderItems = [];
 
             for (const item of items) {
                 const pId = item.product || item.productId;
-                const product = await this.productRepository.findOne({ _id: pId, tenantId }, { session });
+                const product = await this.productRepository.findById(pId);
                 
                 if (!product) throw new Error(`Sản phẩm với ID ${pId} không tồn tại`);
                 if (product.stock < item.quantity) {
@@ -27,7 +26,7 @@ class OrderUseCases {
                 product.stock -= item.quantity;
                 await product.save({ session });
 
-                totalAmount += product.price * item.quantity;
+                subtotal += product.price * item.quantity;
                 orderItems.push({
                     product: product._id,
                     name: product.name,
@@ -36,13 +35,22 @@ class OrderUseCases {
                 });
             }
 
+            const ShippingCalculator = require('../../../domain/services/ShippingCalculator');
+            const shippingFee = ShippingCalculator.calculateFee(region);
+            const totalAmount = subtotal + shippingFee;
+
             const newOrder = await this.orderRepository.create([{
-                tenantId,
                 userId,
                 customerId: userId,
                 items: orderItems,
+                subtotal,
+                shippingFee,
                 totalAmount,
-                status: 'pending' 
+                paymentMethod,
+                shippingAddress,
+                region,
+                status: 'pending',
+                paymentStatus: 'pending'
             }], { session });
 
             await session.commitTransaction();
@@ -85,12 +93,9 @@ class OrderUseCases {
         return { order: updatedOrder, finalStatus };
     }
 
-    async updateOrderStatus(orderId, tenantId, status, adminNote = '', updatedBy = 'system') {
-        const validStatuses = ['pending', 'processing', 'shipping', 'completed', 'cancelled', 'returned', 'failed', 'dispute_escalated', 'waiting_approval'];
+    async updateOrderStatus(orderId, status, adminNote = '', updatedBy = 'system') {
+        const validStatuses = ['pending', 'processing', 'shipping', 'completed', 'cancelled', 'returned', 'failed', 'dispute_escalated'];
         if (!validStatuses.includes(status)) throw new Error('Trạng thái không hợp lệ');
-
-        const query = { _id: orderId };
-        if (tenantId) query.tenantId = tenantId; 
 
         const updateData = { 
             $set: {
@@ -103,11 +108,20 @@ class OrderUseCases {
         if (status === 'completed') updateData.$set.processedAt = Date.now();
         if (adminNote) updateData.$set.adminNote = adminNote;
 
-        const order = await this.orderRepository.findOneAndUpdate(query, updateData, { new: true })
-            .populate('tenantId', 'shopName')
+        const order = await this.orderRepository.findOneAndUpdate({ _id: orderId }, updateData, { new: true })
             .populate('userId', 'name email');
 
-        if (!order) throw new Error('Không tìm thấy đơn hàng hoặc bạn không có quyền chỉnh sửa');
+        if (!order) throw new Error('Không tìm thấy đơn hàng');
+        return order;
+    }
+
+    async updatePaymentStatus(orderId, status) {
+        const order = await this.orderRepository.findOneAndUpdate(
+            { _id: orderId },
+            { $set: { paymentStatus: status } },
+            { new: true }
+        );
+        if (!order) throw new Error('Không tìm thấy đơn hàng');
         return order;
     }
 
@@ -120,7 +134,7 @@ class OrderUseCases {
             "dispute.images": images,
             "dispute.status": 'pending', 
             "dispute.requestedAt": new Date(),
-            "status": 'waiting_approval', 
+            "status": 'dispute_escalated', 
             "updatedAt": new Date()
         };
 
@@ -131,58 +145,14 @@ class OrderUseCases {
         );
     }
 
-    async resolveDispute(orderId, tenantId, { action, shopResponse, shopImages }) {
+    async resolveDispute(orderId, { action, response, imagesResponse }) {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
-            const order = await this.orderRepository.findOne({ _id: orderId, tenantId }, { session });
+            const order = await this.orderRepository.findById(orderId);
             if (!order) throw new Error('Không tìm thấy đơn hàng');
 
             if (action === 'accept') {
-                order.status = 'returned';
-                order.dispute.status = 'accepted';
-                
-                for (const item of order.items) {
-                    await this.productRepository.updateOne(
-                        { _id: item.product },
-                        { $inc: { stock: item.quantity } },
-                        { session }
-                    );
-                }
-            } else {
-                order.status = 'dispute_escalated'; 
-                order.dispute.status = 'processing';
-                order.dispute.escalatedAt = new Date();
-            }
-
-            order.dispute.shopResponse = shopResponse;
-            order.dispute.shopImages = shopImages || [];
-            order.dispute.resolvedAt = new Date();
-            order.updatedAt = Date.now();
-
-            await order.save({ session });
-            await session.commitTransaction();
-            return order;
-        } catch (error) {
-            await session.abortTransaction();
-            throw error;
-        } finally {
-            session.endSession();
-        }
-    }
-
-    async resolveDisputeFinal(orderId, { verdict, adminNote }) {
-        const session = await mongoose.startSession();
-        session.startTransaction();
-        try {
-            const order = await this.orderRepository.findById(orderId, { session });
-            if (!order) throw new Error('Đơn hàng không tồn tại');
-
-            if (!order.customerId && order.userId) {
-                order.customerId = order.userId;
-            }
-
-            if (verdict === 'REFUND_CUSTOMER') {
                 order.status = 'returned';
                 order.dispute.status = 'resolved';
                 
@@ -193,20 +163,17 @@ class OrderUseCases {
                         { session }
                     );
                 }
-            } else if (verdict === 'PAY_SHOP') {
-                order.status = 'completed';
-                order.dispute.status = 'rejected'; 
-                order.processedAt = Date.now();
+            } else {
+                order.status = 'completed'; // Hoặc giữ nguyên trạng thái
+                order.dispute.status = 'rejected';
             }
 
-            order.adminNote = `[PHÁN QUYẾT SÀN]: ${adminNote}`;
-            order.dispute.finalVerdict = verdict;
+            order.dispute.response = response;
+            order.dispute.imagesResponse = imagesResponse || [];
             order.dispute.resolvedAt = new Date();
             order.updatedAt = Date.now();
-            order.updatedBy = 'super_admin';
 
             await order.save({ session });
-            
             await session.commitTransaction();
             return order;
         } catch (error) {
@@ -234,14 +201,11 @@ class OrderUseCases {
         }
     }
 
-    async cancelOrder(orderId, tenantId) {
+    async cancelOrder(orderId) {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
-            const query = { _id: orderId };
-            if (tenantId) query.tenantId = tenantId;
-
-            const order = await this.orderRepository.findOne(query, { session });
+            const order = await this.orderRepository.findById(orderId);
             if (!order || ['cancelled', 'completed', 'returned'].includes(order.status)) {
                 throw new Error('Đơn hàng không thể hủy ở trạng thái hiện tại');
             }
@@ -268,56 +232,11 @@ class OrderUseCases {
         }
     }
 
-    async getDashboardStats(user) {
-        const isSuperAdmin = ['super-admin', 'super_admin'].includes(user?.role);
-        const tenantId = isSuperAdmin ? null : user?.tenantId;
-        const filter = tenantId ? { tenantId } : {};
-
-        const urgentDisputes = await this.orderRepository.find({
-            ...filter,
-            status: 'dispute_escalated'
-        })
-        .populate('tenantId', 'name')
-        .sort({ updatedAt: -1 })
-        .lean();
-
-        const [totalProducts, allOrders, allTenants] = await Promise.all([
-            this.productRepository.countDocuments(filter),
-            this.orderRepository.find(filter).lean(),
-            this.tenantRepository.findAll()
+    async getDashboardStats() {
+        const [totalProducts, allOrders] = await Promise.all([
+            this.productRepository.countDocuments(),
+            this.orderRepository.find().lean()
         ]);
-
-        let topStores = [];
-        if (isSuperAdmin) {
-            const storeStats = allOrders.reduce((acc, order) => {
-                const tId = order.tenantId?.toString();
-                if (!tId) return acc;
-                
-                if (!acc[tId]) {
-                    acc[tId] = { orderCount: 0, revenue: 0, completedCount: 0 };
-                }
-                
-                acc[tId].orderCount += 1;
-                if (order.status === 'completed') {
-                    acc[tId].revenue += (order.totalAmount || 0);
-                    acc[tId].completedCount += 1;
-                }
-                return acc;
-            }, {});
-
-            topStores = allTenants.map(t => {
-                const stats = storeStats[t._id.toString()] || { orderCount: 0, revenue: 0, completedCount: 0 };
-                return {
-                    _id: t._id,
-                    name: t.name,
-                    orderCount: stats.orderCount,
-                    revenue: stats.revenue,
-                    satisfaction: stats.orderCount > 0 ? 100 : 0 
-                };
-            })
-            .sort((a, b) => b.revenue - a.revenue)
-            .slice(0, 5);
-        }
 
         const totalRevenue = allOrders
             .filter(order => order.status === 'completed')
@@ -334,25 +253,25 @@ class OrderUseCases {
             returned: allOrders.filter(o => o.status === 'returned').length
         };
 
-        const latestOrders = await this.orderRepository.find(filter)
+        const latestOrders = await this.orderRepository.find()
             .populate('userId', 'name')
             .sort({ createdAt: -1 })
             .limit(5)
             .lean();
 
-        const latestTenants = isSuperAdmin 
-            ? allTenants.sort((a, b) => b.createdAt - a.createdAt).slice(0, 5)
-            : [];
+        const disputes = await this.orderRepository.find({
+            "dispute.isDisputed": true,
+            "dispute.status": "pending"
+        }).lean();
 
-        return { stats, disputes: urgentDisputes, topStores, latestOrders, latestTenants };
+        return { stats, latestOrders, disputes };
     }
 
-    async getOrders(tenantId, query) {
+    async getOrders(query) {
         const { page = 1, limit = 10, status, search } = query;
         const skip = (page - 1) * limit;
         const filter = {};
         
-        if (tenantId) filter.tenantId = tenantId;
         if (status) filter.status = status;
         if (search) {
             filter.$or = [
@@ -364,7 +283,6 @@ class OrderUseCases {
         const [orders, total] = await Promise.all([
             this.orderRepository.find(filter)
                 .populate('userId', 'name email')
-                .populate('tenantId', 'shopName')
                 .sort({ createdAt: -1 })
                 .skip(skip)
                 .limit(Number(limit))
@@ -380,13 +298,10 @@ class OrderUseCases {
         };
     }
 
-    async getOrderById(orderId, tenantId) {
-        const query = { _id: orderId };
-        if (tenantId) query.tenantId = tenantId;
-        return await this.orderRepository.findOne(query)
+    async getOrderById(orderId) {
+        return await this.orderRepository.findOne({ _id: orderId })
             .populate('userId', 'name phone email address')
             .populate('items.product', 'name price sku images')
-            .populate('tenantId', 'name shopName address phone logo')
             .lean();
     }
 }

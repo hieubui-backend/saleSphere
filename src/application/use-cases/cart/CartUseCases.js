@@ -39,13 +39,16 @@ class CartUseCases {
         throw new Error('Sản phẩm không có trong giỏ');
     }
 
-    async checkout(customerId, tenantId) {
+    async checkout(customerId, checkoutData = {}) {
         const cart = await this.cartRepository.findByCustomerId(customerId);
         if (!cart || cart.items.length === 0) {
             throw new Error('Giỏ hàng trống, không thể thanh toán');
         }
 
-        const order = await this.orderUseCases.createOrder(tenantId, customerId, { items: cart.items });
+        const order = await this.orderUseCases.createOrder(customerId, { 
+            items: cart.items,
+            ...checkoutData 
+        });
         
         await this.cartRepository.deleteByCustomerId(customerId);
 

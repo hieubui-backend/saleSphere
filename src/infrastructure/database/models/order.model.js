@@ -1,10 +1,7 @@
 const mongoose = require('mongoose');
 
 const orderSchema = new mongoose.Schema({
-    tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', required: true },
-    
     // Hỗ trợ cả dữ liệu cũ (userId) và mới (customerId) để tránh lỗi Validation
-    // Cả hai đều để required: false để tránh "gãy" khi lưu đơn hàng cũ/thiếu dữ liệu
     customerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false }, 
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false }, 
 
@@ -14,21 +11,34 @@ const orderSchema = new mongoose.Schema({
         quantity: { type: Number, required: true },
         price: { type: Number, required: true }
     }],
-    
+    subtotal: { type: Number, required: true, default: 0 },
+    shippingFee: { type: Number, required: true, default: 0 },
     totalAmount: { type: Number, required: true },
+    
+    paymentMethod: { 
+        type: String, 
+        enum: ['vnpay', 'momo', 'cod'], 
+        default: 'cod' 
+    },
+    paymentStatus: { 
+        type: String, 
+        enum: ['pending', 'paid', 'failed', 'refunded'], 
+        default: 'pending' 
+    },
+    shippingAddress: { type: String },
+    region: { type: String, default: 'DEFAULT' },
     
     status: { 
         type: String, 
         enum: [
-            'pending',           // Chờ shop xác nhận
-            'waiting_approval',  // Sàn duyệt đơn
+            'pending',           // Chờ xác nhận
             'processing',        // Đang chuẩn bị hàng
             'shipping',          // Đang giao
-            'completed',         // Thành công (Tiền về ví Shop)
+            'completed',         // Thành công
             'cancelled',         // Hủy đơn
             'failed',            // Giao lỗi
-            'returned',          // Đã hoàn trả xong (Tiền về ví Khách)
-            'dispute_escalated'  // Sàn đang trọng tài
+            'returned',          // Đã hoàn trả xong
+            'dispute_escalated'  // Đang xử lý tranh chấp
         ], 
         default: 'pending' 
     },
@@ -50,23 +60,21 @@ const orderSchema = new mongoose.Schema({
         status: { 
             type: String, 
             enum: [
-                'pending',          // Shop đang xử lý
-                'accepted',         // Shop đồng ý hoàn tiền
-                'rejected_by_shop', // Shop từ chối ban đầu
-                'rejected',         // ADMIN PHÁN QUYẾT: Bác bỏ khiếu nại (Trả tiền cho Shop)
-                'processing',       // Admin đang xem xét
-                'resolved'          // ADMIN PHÁN QUYẾT: Đồng ý khiếu nại (Hoàn tiền cho Khách)
+                'pending',          // Đang xử lý
+                'accepted',         // Đồng ý hoàn tiền
+                'rejected',         // Bác bỏ khiếu nại
+                'processing',       // Đang xem xét
+                'resolved'          // Đã giải quyết
             ], 
             default: 'pending' 
         },
         
-        shopResponse: { type: String },
-        shopImages: [{ type: String }],
+        response: { type: String },
+        imagesResponse: [{ type: String }],
         
         returnTrackingNumber: { type: String, default: '' },
         returnShippingPartner: { type: String, default: '' },
         
-        // Ghi lại kết quả cuối cùng của Trọng tài (Admin chọn PAY_SHOP hoặc REFUND_CUSTOMER)
         finalVerdict: { type: String }, 
         escalatedAt: { type: Date },
         requestedAt: { type: Date, default: Date.now },
@@ -83,27 +91,12 @@ const orderSchema = new mongoose.Schema({
     toObject: { virtuals: true }
 });
 
-/**
- * VIRTUALS: Giúp Frontend/Backend gọi .buyerId mà không cần quan tâm 
- * trong DB đang lưu là customerId hay userId.
- */
 orderSchema.virtual('buyerId').get(function() {
     return this.customerId || this.userId;
 });
 
-/**
- * INDEXES: Tối ưu hiệu năng cho hệ thống
- */
-// 1. Tìm nhanh đơn hàng theo trạng thái và thời gian (cho Dashboard Admin)
 orderSchema.index({ status: 1, createdAt: -1 });
-
-// 2. Tìm nhanh đơn hàng của từng Shop (cho Dashboard Merchant)
-orderSchema.index({ tenantId: 1, createdAt: -1 });
-
-// 3. Lọc danh sách các đơn hàng đang có khiếu nại cần xử lý
 orderSchema.index({ "dispute.isDisputed": 1, "dispute.status": 1 });
-
-// 4. Thống kê doanh thu theo thời gian
 orderSchema.index({ "createdAt": 1 }); 
 
 module.exports = mongoose.model('Order', orderSchema);
