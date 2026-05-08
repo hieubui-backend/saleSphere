@@ -8,49 +8,56 @@ class OrderUseCases {
     }
 
     async createOrder(userId, { items, paymentMethod = 'cod', shippingAddress, region = 'DEFAULT' }) {
+        const ProductEntity = require('../../../domain/entities/Product');
+        const OrderEntity = require('../../../domain/entities/Order');
+
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
-            let subtotal = 0;
-            const orderItems = [];
-
-            for (const item of items) {
-                const pId = item.product || item.productId;
-                const product = await this.productRepository.findById(pId);
-                
-                if (!product) throw new Error(`Sản phẩm với ID ${pId} không tồn tại`);
-                if (product.stock < item.quantity) {
-                    throw new Error(`Sản phẩm ${product.name} không đủ hàng trong kho`);
-                }
-
-                product.stock -= item.quantity;
-                await product.save({ session });
-
-                subtotal += product.price * item.quantity;
-                orderItems.push({
-                    product: product._id,
-                    name: product.name,
-                    quantity: item.quantity,
-                    price: product.price
-                });
-            }
-
-            const ShippingCalculator = require('../../../domain/services/ShippingCalculator');
-            const shippingFee = ShippingCalculator.calculateFee(region);
-            const totalAmount = subtotal + shippingFee;
-
-            const newOrder = await this.orderRepository.create([{
-                userId,
+            // 1. Khởi tạo Domain Entity cho Order
+            const order = new OrderEntity({
                 customerId: userId,
-                items: orderItems,
-                subtotal,
-                shippingFee,
-                totalAmount,
-                paymentMethod,
                 shippingAddress,
                 region,
-                status: 'pending',
-                paymentStatus: 'pending'
+                paymentMethod
+            });
+
+            // 2. Xử lý từng item thông qua Domain Entity
+            for (const item of items) {
+                const pId = item.product || item.productId;
+                const productDoc = await this.productRepository.findById(pId);
+                
+                if (!productDoc) throw new Error(`Sản phẩm với ID ${pId} không tồn tại`);
+
+                // Chuyển đổi Mongoose Doc sang Domain Entity
+                const product = new ProductEntity({
+                    id: productDoc._id,
+                    name: productDoc.name,
+                    price: productDoc.price,
+                    stock: productDoc.stock
+                });
+
+                // Domain Entity tự xử lý logic trừ kho và validate
+                order.addItem(product, item.quantity);
+
+                // Cập nhật lại trạng thái kho vào Database
+                productDoc.stock = product.stock;
+                await productDoc.save({ session });
+            }
+
+            // 3. Lưu Order thông qua Repository
+            const newOrder = await this.orderRepository.create([{
+                userId: order.customerId,
+                customerId: order.customerId,
+                items: order.items,
+                subtotal: order.subtotal,
+                shippingFee: order.shippingFee,
+                totalAmount: order.totalAmount,
+                paymentMethod: order.paymentMethod,
+                shippingAddress: order.shippingAddress,
+                region: order.region,
+                status: order.status,
+                paymentStatus: order.paymentStatus
             }], { session });
 
             await session.commitTransaction();
@@ -94,25 +101,37 @@ class OrderUseCases {
     }
 
     async updateOrderStatus(orderId, status, adminNote = '', updatedBy = 'system') {
-        const validStatuses = ['pending', 'processing', 'shipping', 'completed', 'cancelled', 'returned', 'failed', 'dispute_escalated'];
-        if (!validStatuses.includes(status)) throw new Error('Trạng thái không hợp lệ');
+        const OrderEntity = require('../../../domain/entities/Order');
+        const orderDoc = await this.orderRepository.findById(orderId);
+        if (!orderDoc) throw new Error('Không tìm thấy đơn hàng');
+
+        // Tạo Domain Entity từ Data hiện tại
+        const order = new OrderEntity({
+            customerId: orderDoc.customerId,
+            shippingAddress: orderDoc.shippingAddress,
+            region: orderDoc.region,
+            paymentMethod: orderDoc.paymentMethod
+        });
+        order.status = orderDoc.status;
+
+        // Chuyển trạng thái bằng Domain logic (Tự động validate bằng State Machine)
+        order.changeStatus(status);
 
         const updateData = { 
             $set: {
-                status, 
+                status: order.status, 
                 updatedBy,
                 updatedAt: Date.now() 
             }
         };
 
-        if (status === 'completed') updateData.$set.processedAt = Date.now();
+        if (order.status === 'completed') updateData.$set.processedAt = Date.now();
         if (adminNote) updateData.$set.adminNote = adminNote;
 
-        const order = await this.orderRepository.findOneAndUpdate({ _id: orderId }, updateData, { new: true })
+        const updatedOrder = await this.orderRepository.findOneAndUpdate({ _id: orderId }, updateData, { new: true })
             .populate('userId', 'name email');
 
-        if (!order) throw new Error('Không tìm thấy đơn hàng');
-        return order;
+        return updatedOrder;
     }
 
     async updatePaymentStatus(orderId, status) {
