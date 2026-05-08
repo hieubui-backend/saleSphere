@@ -2,17 +2,21 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpecs = require('./config/swagger');
+const { applySanitizers } = require('./middlewares/sanitize.middleware');
+const { apiLimiter } = require('./middlewares/rateLimiter.middleware');
 const path = require('path');
 const expressLayouts = require('express-ejs-layouts'); 
 const session = require('express-session');
 const http = require('http'); 
 const { Server } = require('socket.io'); 
 require('dotenv').config();
+const config = require('./config/config');
+const logger = require('./infrastructure/logging/logger');
 const errorHandler = require('./middlewares/error.middleware');
 const container = require('./di/container');
+const morgan = require('morgan');
 
 const app = express();
 const server = http.createServer(app); 
@@ -49,9 +53,15 @@ app.use(session({
 
 // --- 4. MIDDLEWARES CƠ BẢN ---
 app.use(helmet({ contentSecurityPolicy: false }));
-app.use(cors());
+app.use(morgan('combined', { stream: { write: (message) => logger.info(message.trim()) } }));
 app.use(express.json()); 
 app.use(express.urlencoded({ extended: true })); 
+
+// Áp dụng bộ lọc bảo mật dữ liệu (XSS, NoSQL Injection, HPP)
+applySanitizers(app);
+
+// Áp dụng rate limiter chung cho API
+app.use('/api', apiLimiter);
 
 // Truyền dữ liệu session sang giao diện (EJS)
 app.use((req, res, next) => {
@@ -63,12 +73,7 @@ app.use((req, res, next) => {
     next();
 });
 
-// Giới hạn số lượng request
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 100,
-    message: { message: 'Quá nhiều yêu cầu, vui lòng thử lại sau.' }
-});
+
 
 // --- 5. ĐỊNH TUYẾN WEBHOOK ---
 const orderWebhookRoute = require('./modules/order/order.webhook'); 
@@ -79,30 +84,27 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 
 // --- 7. ĐỊNH TUYẾN (ROUTES) ---
 
-// 7.1. TRANG PORTAL (Lựa chọn vai trò ngay khi vào web)
+// 7.1. TRANG CHỦ (Chuyển hướng đến Store)
 app.get('/', (req, res) => {
-    // Render trang portal không dùng layout chung
-    res.render('portal', { layout: false, title: "SaleSphere - Chọn vai trò" });
+    res.redirect('/customer/home');
 });
 
-// 7.2. Định tuyến cho Quản trị viên của từng Shop (Dùng cho bên trong admin panel)
-app.use('/admin', require('./modules/admin/admin.route')); 
+// 7.2. AUTH ROUTES (Login/Register Admin)
+app.use('/admin/auth', require('./presentation/routes/auth.route'));
 
-// 7.3. Định tuyến cho Khách hàng
-app.use('/customer', require('./modules/customer/customer.route')); 
+// 7.3. ADMIN PANEL (Quản lý)
+app.use('/admin', require('./presentation/routes/admin.route')); 
 
-// 7.4. Định tuyến cho Người bán (Tenant)
-app.use('/tenant', require('./modules/tenant/tenant.route')); 
+// 7.4. CUSTOMER STORE (Trang bán hàng)
+app.use('/customer', require('./presentation/routes/customer.route')); 
 
-// 7.5. Định tuyến cho Super Admin (Quản trị hệ thống)
-app.use('/super-admin', require('./modules/super-admin/super-admin.route')); 
-
-// API Routes
-app.get('/api', (req, res) => res.status(200).json({ message: 'API ROOT OK' }));
-app.use('/api/orders', limiter, require('./modules/order/order.route'));
+// 7.5. API ROUTES
+app.use('/api/products', require('./presentation/routes/product.route'));
+app.use('/api/orders', require('./presentation/routes/order.route'));
 app.use('/api/users', require('./presentation/routes/user.route'));
+app.use('/api/payment', require('./presentation/routes/payment.route'));
 
-// Xử lý lỗi 404 - SỬA LẠI ĐƯỜNG DẪN RENDER
+// Xử lý lỗi 404
 app.use((req, res) => {
     res.status(404).render('errors/404', { 
         layout: false,
@@ -114,24 +116,26 @@ app.use((req, res) => {
 app.use(errorHandler);
 
 // --- 8. KẾT NỐI DATABASE & START SERVER ---
-const PORT = process.env.PORT || 5000;
-mongoose.connect(process.env.MONGO_URI)
+const PORT = config.port;
+mongoose.connect(config.mongoUri)
     .then(() => {
-        console.log('🎉 Kết nối MongoDB thành công!');
+        logger.info('🎉 Kết nối MongoDB thành công!');
         
         io.on('connection', (socket) => {
-            console.log('⚡ Kết nối Socket.io thiết lập');
+            logger.info(`⚡ Kết nối Socket.io thiết lập: ${socket.id}`);
             socket.on('disconnect', () => {
-                console.log('🔌 Một kết nối đã ngắt.');
+                logger.info('🔌 Một kết nối đã ngắt.');
             });
         });
 
         server.listen(PORT, () => {
-            console.log(`🚀 Portal: http://localhost:${PORT}`);
-            console.log(`🛒 Store: http://localhost:${PORT}/customer/home`);
-            console.log(`🏢 Admin: http://localhost:${PORT}/admin/login`);
+            logger.info(`🚀 Server running in ${config.env} mode`);
+            logger.info(`🚀 Portal: http://localhost:${PORT}`);
+            logger.info(`🛒 Store: http://localhost:${PORT}/customer/home`);
+            logger.info(`🏢 Admin: http://localhost:${PORT}/admin/login`);
         });
     })
     .catch(err => {
-        console.error('❌ Lỗi kết nối MongoDB:', err.message);
+        logger.error('❌ Lỗi kết nối MongoDB: %s', err.message);
+        process.exit(1);
     });
