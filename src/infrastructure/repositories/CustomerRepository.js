@@ -1,31 +1,39 @@
+const CustomerMapper = require('../mappers/CustomerMapper');
+
 class CustomerRepository {
     constructor({ customerModel }) {
         this.customerModel = customerModel;
     }
 
-    findByEmail(email) {
-        return this.customerModel.findOne({ email });
+    async findByEmail(email) {
+        const doc = await this.customerModel.findOne({ email }).lean();
+        return CustomerMapper.toDomain(doc);
     }
 
-    findById(id) {
-        return this.customerModel.findById(id);
+    async findById(id) {
+        const doc = await this.customerModel.findById(id).lean();
+        return CustomerMapper.toDomain(doc);
     }
 
-    findOne(query) {
-        return this.customerModel.findOne(query);
+    async findOne(query) {
+        const doc = await this.customerModel.findOne(query).lean();
+        return CustomerMapper.toDomain(doc);
     }
 
-    async create(data) {
-        const customer = new this.customerModel(data);
-        return await customer.save();
+    async create(customerEntity) {
+        const persistenceData = CustomerMapper.toPersistence(customerEntity);
+        const doc = await this.customerModel.create(persistenceData);
+        return CustomerMapper.toDomain(doc);
     }
 
-    updateById(id, data) {
-        return this.customerModel.findByIdAndUpdate(id, data, { new: true });
+    async updateById(id, customerEntity) {
+        const persistenceData = CustomerMapper.toPersistence(customerEntity);
+        const doc = await this.customerModel.findByIdAndUpdate(id, persistenceData, { new: true }).lean();
+        return CustomerMapper.toDomain(doc);
     }
 
     async deleteById(id) {
-        return await this.customerModel.findByIdAndDelete(id);
+        await this.customerModel.findByIdAndDelete(id);
     }
 
     async countDocuments(filter = {}) {
@@ -33,7 +41,8 @@ class CustomerRepository {
     }
 
     async findAll(filter = {}, sort = { createdAt: -1 }) {
-        return await this.customerModel.find(filter).sort(sort).lean();
+        const docs = await this.customerModel.find(filter).sort(sort).lean();
+        return docs.map(doc => CustomerMapper.toDomain(doc));
     }
 }
 

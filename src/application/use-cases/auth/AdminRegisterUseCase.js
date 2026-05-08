@@ -1,50 +1,41 @@
+const User = require('../../../domain/entities/User');
+const Email = require('../../../domain/value-objects/Email');
+
 class AdminRegisterUseCase {
-    constructor({ userRepository, tenantModel, hasher }) {
+    constructor({ userRepository, hasher }) {
         this.userRepository = userRepository;
-        this.tenantModel = tenantModel;
         this.hasher = hasher;
     }
 
-    async execute({ shopName, name, email, password }) {
+    async execute({ name, email, password }) {
+        const emailVO = new Email(email);
+
         // 1. Kiểm tra email tồn tại
-        const userExists = await this.userRepository.findByEmail(email);
+        const userExists = await this.userRepository.findByEmail(emailVO.getValue());
         if (userExists) {
             throw new Error('Email này đã được sử dụng!');
         }
 
-        // 2. Tạo slug
-        const slug = shopName
-            .toLowerCase()
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .replace(/đ/g, "d")
-            .replace(/Đ/g, "D")
-            .replace(/[^\w\s-]/g, "")
-            .trim()
-            .replace(/\s+/g, "-");
-
-        // 3. Tạo Tenant
-        const newTenant = await this.tenantModel.create({ 
-            name: shopName, 
-            slug: slug, 
-            isActive: false, 
-            status: 'pending' 
-        });
-
-        // 4. Hash password
+        // 2. Hash password
         const hashedPassword = await this.hasher.hash(password);
 
-        // 5. Tạo User
-        const newUser = await this.userRepository.create({
+        // 3. Tạo User Entity
+        const userEntity = new User({
             name,
-            email,
+            email: emailVO.getValue(),
             password: hashedPassword,
-            tenantId: newTenant._id,
             role: 'admin'
         });
 
-        return newUser;
+        const newUser = await this.userRepository.create(userEntity);
+
+        const response = { ...newUser };
+        delete response.password;
+        
+        return response;
     }
 }
+
+module.exports = AdminRegisterUseCase;
 
 module.exports = AdminRegisterUseCase;

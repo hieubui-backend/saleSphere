@@ -1,23 +1,30 @@
+const CartMapper = require('../mappers/CartMapper');
+
 class CartRepository {
     constructor({ cartModel }) {
         this.cartModel = cartModel;
     }
 
     async findByCustomerId(customerId) {
-        return await this.cartModel.findOne({ customerId });
+        const doc = await this.cartModel.findOne({ customerId }).lean();
+        return CartMapper.toDomain(doc);
     }
 
-    async findByCustomerIdWithProduct(customerId) {
-        return await this.cartModel.findOne({ customerId }).populate('items.productId');
-    }
-
-    async create(data) {
-        const cart = new this.cartModel(data);
-        return await cart.save();
+    async save(cartEntity) {
+        const persistenceData = CartMapper.toPersistence(cartEntity);
+        
+        // Cập nhật hoặc tạo mới dựa trên customerId
+        const doc = await this.cartModel.findOneAndUpdate(
+            { customerId: cartEntity.customerId },
+            { $set: persistenceData },
+            { new: true, upsert: true }
+        ).lean();
+        
+        return CartMapper.toDomain(doc);
     }
 
     async deleteByCustomerId(customerId) {
-        return await this.cartModel.deleteOne({ customerId });
+        await this.cartModel.findOneAndDelete({ customerId });
     }
 }
 

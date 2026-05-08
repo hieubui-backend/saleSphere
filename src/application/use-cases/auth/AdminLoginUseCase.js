@@ -1,13 +1,16 @@
+const Email = require('../../../domain/value-objects/Email');
+
 class AdminLoginUseCase {
-    constructor({ userRepository, tenantModel, hasher }) {
+    constructor({ userRepository, hasher }) {
         this.userRepository = userRepository;
-        this.tenantModel = tenantModel;
         this.hasher = hasher;
     }
 
     async execute({ email, password }) {
-        // 1. Tìm user
-        const user = await this.userRepository.findByEmail(email);
+        const emailVO = new Email(email);
+
+        // 1. Tìm user (trả về Entity)
+        const user = await this.userRepository.findByEmail(emailVO.getValue());
         if (!user) {
             throw new Error('Email hoặc mật khẩu không chính xác!');
         }
@@ -18,33 +21,11 @@ class AdminLoginUseCase {
             throw new Error('Email hoặc mật khẩu không chính xác!');
         }
 
-        // 3. Xử lý Super Admin
-        if (user.role === 'super_admin' || user.role === 'super-admin') {
-            return {
-                id: user._id, 
-                name: user.name, 
-                tenantId: null, 
-                tenantName: 'Hệ thống Quản trị',
-                role: 'super_admin' 
-            };
-        }
-
-        // 4. Xử lý Admin Cửa hàng
-        if (!user.tenantId) {
-            throw new Error('Tài khoản không thuộc cửa hàng nào!');
-        }
-
-        const tenant = await this.tenantModel.findById(user.tenantId).lean();
-        
-        if (!tenant || tenant.isActive === false) {
-            throw new Error('Cửa hàng của bạn đã bị khóa hoặc ngừng hoạt động!');
-        }
-
+        // 3. Trả về thông tin session
         return {
-            id: user._id, 
+            id: user.id, 
             name: user.name, 
-            tenantId: user.tenantId, 
-            tenantName: tenant.name,
+            email: user.email,
             role: user.role 
         };
     }

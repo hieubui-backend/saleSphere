@@ -1,3 +1,5 @@
+const Email = require('../../../domain/value-objects/Email');
+
 class CustomerLoginUseCase {
     constructor({ customerRepository, hasher, tokenManager }) {
         this.customerRepository = customerRepository;
@@ -6,8 +8,10 @@ class CustomerLoginUseCase {
     }
 
     async execute({ email, password }) {
-        // 1. Tìm user
-        const customer = await this.customerRepository.findByEmail(email);
+        const emailVO = new Email(email);
+
+        // 1. Tìm user (trả về Customer Entity)
+        const customer = await this.customerRepository.findByEmail(emailVO.getValue());
         if (!customer) {
             throw new Error('Email hoặc mật khẩu không chính xác!');
         }
@@ -20,7 +24,7 @@ class CustomerLoginUseCase {
 
         // 3. Tạo JWT token cho client (React)
         const tokenPayload = {
-            id: customer._id,
+            id: customer.id,
             role: 'customer'
         };
         const token = this.tokenManager.generateToken(tokenPayload);
@@ -28,7 +32,7 @@ class CustomerLoginUseCase {
         return {
             token,
             customer: {
-                id: customer._id,
+                id: customer.id,
                 name: customer.name,
                 email: customer.email,
                 phone: customer.phone,

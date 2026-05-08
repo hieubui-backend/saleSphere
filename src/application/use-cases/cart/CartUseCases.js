@@ -1,52 +1,55 @@
+const { Cart } = require('../../../domain/entities/Cart');
+
 class CartUseCases {
-    constructor({ cartRepository, productModel, orderUseCases }) {
+    constructor({ cartRepository, productRepository, orderUseCases }) {
         this.cartRepository = cartRepository;
-        this.Product = productModel;
+        this.productRepository = productRepository;
         this.orderUseCases = orderUseCases;
     }
 
-    async updateCartQuantity(customerId, productId, change) {
-        const cart = await this.cartRepository.findByCustomerIdWithProduct(customerId);
-        if (!cart) {
-            throw new Error('Giỏ hàng không tồn tại');
+    async addToCart(customerId, { productId, quantity = 1 }) {
+        let cartEntity = await this.cartRepository.findByCustomerId(customerId);
+        if (!cartEntity) {
+            cartEntity = new Cart({ customerId, items: [] });
         }
 
-        const itemIndex = cart.items.findIndex(p => p.productId._id.toString() === productId);
+        const productEntity = await this.productRepository.findById(productId);
+        if (!productEntity) throw new Error('Sản phẩm không tồn tại');
 
-        if (itemIndex > -1) {
-            const product = cart.items[itemIndex].productId;
-            const currentQty = cart.items[itemIndex].quantity;
-            const newQty = currentQty + change;
+        if (productEntity.stock < quantity) throw new Error('Sản phẩm không đủ hàng');
 
-            if (change > 0 && newQty > product.stock) {
-                throw new Error(`Sản phẩm này chỉ còn ${product.stock} món trong kho`);
-            }
+        cartEntity.addItem(productEntity, quantity);
+        return await this.cartRepository.save(cartEntity);
+    }
 
-            if (newQty <= 0) {
-                cart.items.splice(itemIndex, 1);
-            } else {
-                cart.items[itemIndex].quantity = newQty;
-            }
+    async updateCartQuantity(customerId, productId, quantity) {
+        const cartEntity = await this.cartRepository.findByCustomerId(customerId);
+        if (!cartEntity) throw new Error('Giỏ hàng không tồn tại');
 
-            cart.totalPrice = cart.items.reduce((total, item) => {
-                return total + (item.quantity * item.productId.price);
-            }, 0);
+        const productEntity = await this.productRepository.findById(productId);
+        if (!productEntity) throw new Error('Sản phẩm không tồn tại');
 
-            await cart.save();
-            return cart;
+        if (quantity > productEntity.stock) {
+            throw new Error(`Sản phẩm này chỉ còn ${productEntity.stock} món trong kho`);
         }
 
-        throw new Error('Sản phẩm không có trong giỏ');
+        if (quantity <= 0) {
+            cartEntity.removeItem(productId);
+        } else {
+            cartEntity.updateItemQuantity(productId, quantity);
+        }
+
+        return await this.cartRepository.save(cartEntity);
     }
 
     async checkout(customerId, checkoutData = {}) {
-        const cart = await this.cartRepository.findByCustomerId(customerId);
-        if (!cart || cart.items.length === 0) {
+        const cartEntity = await this.cartRepository.findByCustomerId(customerId);
+        if (!cartEntity || cartEntity.items.length === 0) {
             throw new Error('Giỏ hàng trống, không thể thanh toán');
         }
 
         const order = await this.orderUseCases.createOrder(customerId, { 
-            items: cart.items,
+            items: cartEntity.items.map(i => ({ product: i.productId, quantity: i.quantity })),
             ...checkoutData 
         });
         

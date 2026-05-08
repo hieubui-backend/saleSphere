@@ -6,7 +6,7 @@ class UserUseCases {
     }
 
     async register(userData) {
-        const { email, password, tenantId, name, role } = userData;
+        const { email, password, name, role } = userData;
         
         const userExists = await this.userRepository.findByEmail(email);
         if (userExists) throw new Error('Email đã được sử dụng');
@@ -14,7 +14,6 @@ class UserUseCases {
         const hashedPassword = await this.hasher.hash(password);
 
         const user = await this.userRepository.create({
-            tenantId,
             name,
             email,
             password: hashedPassword,
@@ -24,8 +23,7 @@ class UserUseCases {
         return {
             _id: user._id,
             name: user.name,
-            email: user.email,
-            tenantId: user.tenantId
+            email: user.email
         };
     }
 
@@ -38,7 +36,6 @@ class UserUseCases {
 
         const token = this.tokenManager.generateToken({
             id: user._id, 
-            tenantId: user.tenantId, 
             role: user.role
         });
 
@@ -47,32 +44,30 @@ class UserUseCases {
             user: { 
                 id: user._id, 
                 name: user.name, 
-                role: user.role, 
-                tenantId: user.tenantId 
+                role: user.role
             }
         };
     }
 
-    async getAllUsers(tenantId, { page = 1, limit = 10 }) {
+    async getAllUsers({ page = 1, limit = 10 }) {
         const skip = (page - 1) * limit;
         const limitNum = parseInt(limit, 10);
         
-        // Dùng repository
-        const users = await this.userRepository.findByTenantAndRole(tenantId, 'staff', skip, limitNum);
-        const count = await this.userRepository.countByTenantAndRole(tenantId, 'staff');
+        const users = await this.userRepository.findByRole('staff', skip, limitNum);
+        const count = await this.userRepository.countByRole('staff');
 
         return { users, count };
     }
 
-    async updateUser(id, tenantId, updateData) {
-        return await this.userRepository.updateByIdAndTenant(id, tenantId, {
+    async updateUser(id, updateData) {
+        return await this.userRepository.updateById(id, {
             name: updateData.name,
             role: updateData.role
         });
     }
 
-    async deleteUser(id, tenantId) {
-        return await this.userRepository.deleteByIdAndTenant(id, tenantId);
+    async deleteUser(id) {
+        return await this.userRepository.deleteById(id);
     }
 }
 

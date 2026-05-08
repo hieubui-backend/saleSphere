@@ -46,22 +46,10 @@ class OrderUseCases {
             }
 
             // 3. Lưu Order thông qua Repository
-            const newOrder = await this.orderRepository.create([{
-                userId: order.customerId,
-                customerId: order.customerId,
-                items: order.items,
-                subtotal: order.subtotal,
-                shippingFee: order.shippingFee,
-                totalAmount: order.totalAmount,
-                paymentMethod: order.paymentMethod,
-                shippingAddress: order.shippingAddress,
-                region: order.region,
-                status: order.status,
-                paymentStatus: order.paymentStatus
-            }], { session });
+            const newOrder = await this.orderRepository.create(order, { session });
 
             await session.commitTransaction();
-            return newOrder[0];
+            return newOrder;
         } catch (error) {
             await session.abortTransaction();
             throw error;

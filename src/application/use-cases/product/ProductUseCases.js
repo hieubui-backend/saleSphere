@@ -3,12 +3,12 @@ class ProductUseCases {
         this.productRepository = productRepository;
     }
 
-    async getAllProducts(tenantId, query = {}) {
-        return await this.productRepository.findByTenant(tenantId, query);
+    async getAllProducts(query = {}) {
+        return await this.productRepository.findAll(query);
     }
 
-    async getProductById(id, tenantId) {
-        return await this.productRepository.findByIdAndTenant(id, tenantId);
+    async getProductById(id) {
+        return await this.productRepository.findById(id);
     }
 
     async createProduct(productData) {
@@ -29,18 +29,18 @@ class ProductUseCases {
         return await this.productRepository.create(cleanData);
     }
 
-    async updateProduct(id, tenantId, updateData) {
+    async updateProduct(id, updateData) {
         const formattedUpdate = { ...updateData };
         
         if (formattedUpdate.price !== undefined) formattedUpdate.price = Number(formattedUpdate.price) || 0;
         if (formattedUpdate.stock !== undefined) formattedUpdate.stock = Number(formattedUpdate.stock) || 0;
         if (formattedUpdate.name) formattedUpdate.name = formattedUpdate.name.trim();
 
-        return await this.productRepository.updateByIdAndTenant(id, tenantId, formattedUpdate);
+        return await this.productRepository.updateById(id, formattedUpdate);
     }
 
-    async deleteProduct(id, tenantId) {
-        return await this.productRepository.deleteByIdAndTenant(id, tenantId);
+    async deleteProduct(id) {
+        return await this.productRepository.deleteById(id);
     }
 }
 

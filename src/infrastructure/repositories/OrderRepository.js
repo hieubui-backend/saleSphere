@@ -1,38 +1,64 @@
+const OrderMapper = require('../mappers/OrderMapper');
+
 class OrderRepository {
     constructor({ orderModel }) {
         this.orderModel = orderModel;
     }
 
-    findById(id, options = {}) {
-        return this.orderModel.findById(id, null, options);
+    async create(orderEntity, options = {}) {
+        const persistenceData = OrderMapper.toPersistence(orderEntity);
+        
+        // Cần xử lý array cho create nếu options.session được pass vào (như UseCase cũ)
+        // Mongoose create(doc, options) -> Mongoose 6+ hỗ trợ mảng docs. Ta truyền mảng 1 phần tử.
+        const docs = await this.orderModel.create([persistenceData], options);
+        return OrderMapper.toDomain(docs[0]);
     }
 
-    findOne(query, options = {}) {
-        return this.orderModel.findOne(query, null, options);
+    async findById(id) {
+        const doc = await this.orderModel.findById(id).lean();
+        return OrderMapper.toDomain(doc);
     }
 
-    find(query, options = {}) {
-        return this.orderModel.find(query, null, options);
+    async findByCustomerId(customerId) {
+        const docs = await this.orderModel.find({ customerId }).sort({ createdAt: -1 }).lean();
+        return docs.map(doc => OrderMapper.toDomain(doc));
     }
 
-    async create(data, options = {}) {
-        return await this.orderModel.create(data, options);
+    async findAll(query = {}) {
+        const docs = await this.orderModel.find(query).sort({ createdAt: -1 }).lean();
+        return docs.map(doc => OrderMapper.toDomain(doc));
     }
 
-    findByIdAndUpdate(id, update, options = {}) {
-        return this.orderModel.findByIdAndUpdate(id, update, options);
+    async save(orderEntity, options = {}) {
+        const persistenceData = OrderMapper.toPersistence(orderEntity);
+        const doc = await this.orderModel.findOneAndUpdate(
+            { _id: orderEntity.id },
+            { $set: persistenceData },
+            { new: true, ...options }
+        ).lean();
+        return OrderMapper.toDomain(doc);
     }
 
-    findOneAndUpdate(query, update, options = {}) {
-        return this.orderModel.findOneAndUpdate(query, update, options);
-    }
+    async getDashboardStats() {
+        // Tạm giữ logic aggregate của MongoDB vì phần này là hạ tầng (infrastructure) thuần túy
+        // Không map sang Domain Entity vì nó trả về báo cáo (Read Model).
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
-    async countDocuments(query = {}) {
-        return await this.orderModel.countDocuments(query);
-    }
+        const [dailyRevenue, totalOrders, pendingOrders] = await Promise.all([
+            this.orderModel.aggregate([
+                { $match: { createdAt: { $gte: today }, status: 'completed' } },
+                { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+            ]),
+            this.orderModel.countDocuments(),
+            this.orderModel.countDocuments({ status: 'pending' })
+        ]);
 
-    async aggregate(pipeline) {
-        return await this.orderModel.aggregate(pipeline);
+        return {
+            dailyRevenue: dailyRevenue[0]?.total || 0,
+            totalOrders,
+            pendingOrders
+        };
     }
 }
 

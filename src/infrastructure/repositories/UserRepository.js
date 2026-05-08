@@ -1,49 +1,48 @@
+const UserMapper = require('../mappers/UserMapper');
+
 class UserRepository {
     constructor({ userModel }) {
         this.userModel = userModel;
     }
 
     async findByEmail(email) {
-        return await this.userModel.findOne({ email }).lean();
+        const doc = await this.userModel.findOne({ email }).lean();
+        return UserMapper.toDomain(doc);
     }
 
     async findById(id) {
-        return await this.userModel.findById(id).lean();
+        const doc = await this.userModel.findById(id).lean();
+        return UserMapper.toDomain(doc);
     }
 
-    async create(userData) {
-        const user = await this.userModel.create(userData);
-        return user.toObject();
+    async create(userEntity) {
+        const persistenceData = UserMapper.toPersistence(userEntity);
+        const doc = await this.userModel.create(persistenceData);
+        return UserMapper.toDomain(doc);
     }
 
-    async countByTenantAndRole(tenantId, role) {
-        const query = { role };
-        if (tenantId) query.tenantId = tenantId;
-        return await this.userModel.countDocuments(query);
+    async countByRole(role) {
+        return await this.userModel.countDocuments({ role });
     }
 
-    async findByTenantAndRole(tenantId, role, skip, limit) {
-        const query = { role };
-        if (tenantId) query.tenantId = tenantId;
-        
-        return await this.userModel.find(query)
+    async findByRole(role, skip, limit) {
+        const docs = await this.userModel.find({ role })
             .select('-password')
             .skip(skip)
             .limit(limit)
             .sort({ createdAt: -1 })
             .lean();
+        return docs.map(doc => UserMapper.toDomain(doc));
     }
 
-    async updateByIdAndTenant(id, tenantId, updateData) {
-        return await this.userModel.findOneAndUpdate(
-            { _id: id, tenantId },
-            updateData,
-            { new: true }
-        ).select('-password').lean();
+    async updateById(id, userEntity) {
+        const persistenceData = UserMapper.toPersistence(userEntity);
+        const doc = await this.userModel.findByIdAndUpdate(id, persistenceData, { new: true }).lean();
+        return UserMapper.toDomain(doc);
     }
 
-    async deleteByIdAndTenant(id, tenantId) {
-        return await this.userModel.findOneAndDelete({ _id: id, tenantId }).lean();
+    async deleteById(id) {
+        await this.userModel.findByIdAndDelete(id);
     }
 }
 
