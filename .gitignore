@@ -4,3 +4,6 @@ public/uploads/
 .DS_Store
 npm-debug.log
 yarn-error.log
+dist/
+logs/
+coverage/

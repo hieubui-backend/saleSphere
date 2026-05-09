@@ -1,0 +1,55 @@
+import CustomerEntity from '../../../domain/entities/CustomerEntity';
+import Email from '../../../domain/value-objects/Email';
+import { ICustomerRepository } from '../../../domain/repositories/ICustomerRepository';
+
+export default class CustomerUseCases {
+    private customerRepository: ICustomerRepository;
+    private cartUseCases: any; // Cần type sau khi convert CartUseCases
+
+    constructor({ customerRepository, cartUseCases }: { customerRepository: ICustomerRepository, cartUseCases: any }) {
+        this.customerRepository = customerRepository;
+        this.cartUseCases = cartUseCases;
+    }
+
+    public async createCustomer({ name, email, phone, address }: { name: string, email: string, phone?: string, address?: string }): Promise<CustomerEntity | null> {
+        const emailVO = new Email(email);
+        const existing = await this.customerRepository.findByEmail(emailVO.getValue());
+        if (existing) throw new Error('Email đã tồn tại!');
+        
+        const customerEntity = new CustomerEntity({ name, email: emailVO.getValue(), phone, address });
+        return await this.customerRepository.create(customerEntity);
+    }
+
+    public async updateCustomer(id: string, { name, email, phone, address }: { name?: string, email?: string, phone?: string, address?: string }): Promise<CustomerEntity | null> {
+        const customerEntity = await this.customerRepository.findById(id);
+        if (!customerEntity) throw new Error('Không tìm thấy người mua!');
+        
+        customerEntity.updateProfile({ name, phone, address });
+        
+        if (email) {
+            customerEntity.email = new Email(email).getValue();
+        }
+
+        return await this.customerRepository.updateById(id, customerEntity);
+    }
+
+    public async deleteCustomer(id: string): Promise<CustomerEntity> {
+        const customerEntity = await this.customerRepository.findById(id);
+        if (!customerEntity) throw new Error('Không tìm thấy người mua!');
+        await this.customerRepository.deleteById(id);
+        return customerEntity;
+    }
+
+    public async getAllCustomers(filter: any = {}): Promise<CustomerEntity[]> {
+        return await this.customerRepository.findAll(filter);
+    }
+
+    public async addToCart(customerId: string, { productId, quantity = 1 }: { productId: string, quantity?: number }): Promise<any> {
+        return await this.cartUseCases.addToCart(customerId, { productId, quantity });
+    }
+}
+
+
+
+
+
