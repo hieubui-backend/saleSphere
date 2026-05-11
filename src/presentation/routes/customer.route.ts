@@ -2,7 +2,8 @@ import express from 'express';
 import * as customerController from '../controllers/customer.controller';
 import * as cartController from '../controllers/cart.controller';
 import * as orderController from '../controllers/order.controller';
-import { protect } from '../../middlewares/auth.middleware';
+import { protect, optionalAuth } from '../../middlewares/auth.middleware';
+import { validateCustomerRegister } from '../../middlewares/validation.middleware';
 
 const router = express.Router();
 
@@ -47,7 +48,7 @@ const router = express.Router();
  *       201:
  *         description: Đăng ký thành công
  */
-router.post('/register', customerController.register);
+router.post('/register', validateCustomerRegister, customerController.register);
 
 /**
  * @swagger
@@ -92,6 +93,12 @@ router.post('/login', customerController.login);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Customer'
+ */
+router.get('/profile', protect, customerController.getProfile);
+
+/**
+ * @swagger
+ * /api/customer/profile:
  *   put:
  *     summary: Cập nhật thông tin cá nhân
  *     tags: [Customer]
@@ -114,7 +121,6 @@ router.post('/login', customerController.login);
  *       200:
  *         description: Cập nhật thành công
  */
-router.get('/profile', protect, customerController.getProfile);
 router.put('/profile', protect, customerController.updateProfile);
 
 // ==========================================
@@ -133,7 +139,7 @@ router.put('/profile', protect, customerController.updateProfile);
  *       200:
  *         description: Thành công
  */
-router.get('/cart', protect, cartController.getCart);
+router.get('/cart', optionalAuth, cartController.getCart);
 
 /**
  * @swagger
@@ -159,7 +165,7 @@ router.get('/cart', protect, cartController.getCart);
  *       200:
  *         description: Đã thêm vào giỏ
  */
-router.post('/cart/add', protect, cartController.addToCart);
+router.post('/cart/add', optionalAuth, cartController.addToCart);
 
 /**
  * @swagger
@@ -185,7 +191,27 @@ router.post('/cart/add', protect, cartController.addToCart);
  *       200:
  *         description: Cập nhật thành công
  */
-router.put('/cart/update', protect, cartController.updateCartQuantity);
+router.put('/cart/update', optionalAuth, cartController.updateCartQuantity);
+
+/**
+ * @swagger
+ * /api/customer/cart/items/{productId}:
+ *   delete:
+ *     summary: Xóa sản phẩm khỏi giỏ hàng
+ *     tags: [Cart]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: productId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Xóa thành công
+ */
+router.delete('/cart/items/:productId', optionalAuth, cartController.removeFromCart);
 
 /**
  * @swagger
@@ -214,7 +240,7 @@ router.put('/cart/update', protect, cartController.updateCartQuantity);
  *       201:
  *         description: Đặt hàng thành công
  */
-router.post('/cart/checkout', protect, cartController.checkout);
+router.post('/cart/checkout', optionalAuth, cartController.checkout);
 
 // ==========================================
 // 4. ĐƠN HÀNG CỦA KHÁCH
@@ -233,6 +259,7 @@ router.post('/cart/checkout', protect, cartController.checkout);
  *         description: Thành công
  */
 router.get('/orders', protect, orderController.getCustomerOrders);
+router.get('/orders/:id/payment-link', protect, orderController.getPaymentLink);
 
 // ==========================================
 // 5. KHIẾU NẠI (DISPUTES)
@@ -266,6 +293,6 @@ router.get('/orders', protect, orderController.getCustomerOrders);
  *       200:
  *         description: Gửi khiếu nại thành công
  */
-router.post('/orders/:id/dispute', protect, orderController.resolveDispute);
+router.post('/orders/:id/dispute', protect, orderController.createDispute);
 
 export default router;

@@ -24,6 +24,12 @@ const router = express.Router();
  *         name: category
  *         schema:
  *           type: string
+ *           enum:
+ *             - Tiểu thuyết
+ *             - Khoa học
+ *             - Lịch sử
+ *             - Kỹ năng sống
+ *             - Truyện tranh
  *       - in: query
  *         name: search
  *         schema:
@@ -88,6 +94,7 @@ router.get('/:id', productController.getProductById);
  *                 type: integer
  *               category:
  *                 type: string
+ *                 enum: [Tiểu thuyết, Khoa học, Lịch sử, Kỹ năng sống, Truyện tranh]
  *               description:
  *                 type: string
  *               images:
@@ -136,6 +143,7 @@ router.post(
  *                 type: integer
  *               category:
  *                 type: string
+ *                 enum: [Tiểu thuyết, Khoa học, Lịch sử, Kỹ năng sống, Truyện tranh]
  *               description:
  *                 type: string
  *               images:
@@ -182,8 +190,3 @@ router.delete(
 );
 
 export default router;
-
-
-
-
-
