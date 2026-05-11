@@ -7,9 +7,11 @@
     "dev": "nodemon --exec ts-node src/server.ts",
     "build": "tsc",
     "seed:admin": "ts-node seedAdmin.ts",
+    "reset:db": "ts-node resetDb.ts",
     "test": "jest"
   },
   "dependencies": {
+    "@payos/node": "^2.0.5",
     "awilix": "^13.0.3",
     "axios": "^1.13.2",
     "bcryptjs": "^3.0.3",
