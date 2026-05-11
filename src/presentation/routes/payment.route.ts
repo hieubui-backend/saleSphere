@@ -33,10 +33,8 @@ router.get('/vnpay/return', paymentController.vnpayReturn);
  *         description: Xác nhận trạng thái giao dịch
  */
 router.get('/vnpay/ipn', paymentController.vnpayIpn);
+router.post('/payos/webhook', paymentController.payosWebhook);
+router.get('/payos/return', paymentController.payosReturn);
+router.get('/payos/cancel', paymentController.payosCancel);
 
 export default router;
-
-
-
-
-

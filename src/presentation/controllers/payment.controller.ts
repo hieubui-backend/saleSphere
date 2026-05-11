@@ -35,8 +35,72 @@ export const vnpayIpn = asyncHandler(async (req: Request, res: Response) => {
         res.status(200).json({ RspCode: '99', Message: 'Unknown error' });
     }
 });
+export const payosWebhook = asyncHandler(async (req: Request, res: Response) => {
+    const { paymentUseCases } = req.container.cradle;
+    
+    try {
+        const order = await paymentUseCases.handlePayOSWebhook(req.body);
+        
+        if (order) {
+            // Emit socket update để Admin Dashboard cập nhật thời gian thực
+            const io = req.app.get('socketio');
+            if (io) {
+                io.emit('orderUpdate', { 
+                    orderId: order.id, 
+                    status: order.status, 
+                    paymentStatus: 'paid' 
+                });
+            }
+            res.status(200).json({ success: true });
+        } else {
+            res.status(400).json({ success: false, message: 'Webhook processing failed' });
+        }
+    } catch (error: any) {
+        console.error("PayOS Webhook Error:", error);
+        res.status(400).json({ success: false, message: error.message });
+    }
+});
 
+export const payosReturn = asyncHandler(async (req: Request, res: Response) => {
+    const { status, orderCode, orderId } = req.query;
+    const clientUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL || 'http://localhost:5173';
 
+    try {
+        if (status === 'PAID') {
+            const { orderUseCases, orderRepository } = req.container.cradle;
+            
+            let order: any = null;
+            if (orderId) {
+                order = await orderUseCases.getOrderById(orderId as string);
+            } else if (orderCode) {
+                order = await orderRepository.findByOrderCode(Number(orderCode));
+            }
 
+            if (order && order.paymentStatus !== 'paid') {
+                const oId = order.id || (order as any)._id;
+                await orderUseCases.updatePaymentStatus(oId, 'paid');
+                console.log(`✅ [PayOS Return] Đã cập nhật paymentStatus thành 'paid' cho đơn hàng ${oId}`);
+                
+                const io = req.app.get('socketio');
+                if (io) {
+                    io.emit('orderUpdate', { 
+                        orderId: oId, 
+                        status: order.status, 
+                        paymentStatus: 'paid' 
+                    });
+                }
+            }
+            res.redirect(`${clientUrl}/customer-profile?payment=success`);
+        } else {
+            res.redirect(`${clientUrl}/customer-profile?payment=failed`);
+        }
+    } catch (error) {
+        console.error("PayOS Return Error:", error);
+        res.redirect(`${clientUrl}/customer-profile?payment=error`);
+    }
+});
 
-
+export const payosCancel = asyncHandler(async (req: Request, res: Response) => {
+    const clientUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL || 'http://localhost:5173';
+    res.redirect(`${clientUrl}/cart?payment=cancelled`);
+});
