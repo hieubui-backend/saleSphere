@@ -42,6 +42,7 @@ export interface IOrder extends Document {
     updatedAt: Date;
     buyerId: mongoose.Types.ObjectId;
     orderCode?: number;
+    paymentTransactionId?: string;
 }
 
 const orderSchema: Schema = new Schema({
@@ -111,7 +112,8 @@ const orderSchema: Schema = new Schema({
     adminNote: { type: String, default: '' }, 
     updatedBy: { type: String, default: 'system' }, 
     processedAt: { type: Date },
-    orderCode: { type: Number }
+    orderCode: { type: Number },
+    paymentTransactionId: { type: String, unique: true, sparse: true }
 
 }, { 
     timestamps: true,

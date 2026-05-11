@@ -63,8 +63,8 @@ export default class OrderRepository implements IOrderRepository {
         };
     }
 
-    public async findByOrderCode(orderCode: number): Promise<OrderEntity | null> {
-        const doc = await this.orderModel.findOne({ orderCode }).lean();
+    public async findByOrderCode(orderCode: number, options: any = {}): Promise<OrderEntity | null> {
+        const doc = await this.orderModel.findOne({ orderCode }, null, options).lean();
         return OrderMapper.toDomain(doc);
     }
 }

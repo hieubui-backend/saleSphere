@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import OrderEntity from '../../../domain/entities/OrderEntity';
 import { IOrderRepository } from '../../../domain/repositories/IOrderRepository';
 import PayOSGateway from '../../../infrastructure/payment/PayOSGateway';
@@ -57,23 +58,46 @@ export default class PaymentUseCases {
      * Xử lý Webhook từ PayOS
      */
     public async handlePayOSWebhook(body: any): Promise<OrderEntity | null> {
+        const session = await mongoose.startSession();
+        session.startTransaction();
         try {
             const webhookData = this.payOSGateway.verifyWebhookData(body);
             const orderCode = webhookData.orderCode;
+            const transactionId = webhookData.reference; // Đây là mã giao dịch duy nhất từ PayOS
             
-            const order = await this.orderRepository.findByOrderCode(orderCode);
-            if (!order) return null;
+            const order = await this.orderRepository.findByOrderCode(orderCode, { session });
+            if (!order) {
+                await session.abortTransaction();
+                return null;
+            }
+
+            // KIỂM TRA IDEMPOTENCY:
+            // 1. Nếu đơn hàng đã được đánh dấu là 'paid'
+            // 2. Hoặc nếu mã giao dịch này đã được xử lý trước đó
+            if (order.paymentStatus === 'paid' || order.paymentTransactionId === transactionId) {
+                console.log(`Webhook trùng lặp được phát hiện cho OrderCode: ${orderCode}, TransactionId: ${transactionId}. Bỏ qua.`);
+                await session.commitTransaction(); // Trả về thành công để PayOS không gửi lại
+                return order;
+            }
 
             // Kiểm tra trạng thái thanh toán từ PayOS
             if (webhookData.status === 'PAID' || webhookData.desc === 'success') {
                 order.updatePaymentStatus('paid');
-                return await this.orderRepository.save(order);
+                order.paymentTransactionId = transactionId; // Lưu vết mã giao dịch
+                
+                const updatedOrder = await this.orderRepository.save(order, { session });
+                await session.commitTransaction();
+                return updatedOrder;
             }
             
+            await session.abortTransaction();
             return null;
         } catch (error) {
+            await session.abortTransaction();
             console.error("PaymentUseCases handlePayOSWebhook Error:", error);
             return null;
+        } finally {
+            session.endSession();
         }
     }
 }

@@ -21,6 +21,7 @@ export default class OrderMapper {
             status: doc.status,
             paymentStatus: doc.paymentStatus,
             orderCode: doc.orderCode,
+            paymentTransactionId: doc.paymentTransactionId,
             createdAt: doc.createdAt,
             updatedAt: doc.updatedAt
         });
@@ -48,7 +49,8 @@ export default class OrderMapper {
             shippingAddress: entity.shippingAddress,
             region: entity.region,
             status: entity.status,
-            orderCode: entity.orderCode
+            orderCode: entity.orderCode,
+            paymentTransactionId: entity.paymentTransactionId
         };
     }
 }
