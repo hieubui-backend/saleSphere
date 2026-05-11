@@ -28,7 +28,12 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
 
 export const getProfile = asyncHandler(async (req: Request, res: Response) => {
     const { customerRepository } = req.container.cradle;
-    const customer = await customerRepository.findById((req as any).user.id as string);
+    const userId = (req as any).user.id as string;
+
+    // In ra ID để bạn đối chiếu với Database MongoDB
+    console.log('🔍 [Profile API] Đang tìm kiếm User ID từ Token:', userId);
+
+    const customer = await customerRepository.findById(userId);
     if (!customer) {
         res.status(404).json({ success: false, message: 'Không tìm thấy thông tin' });
         return;
@@ -93,9 +98,3 @@ export const deleteCustomer = asyncHandler(async (req: Request, res: Response) =
     await customerUseCases.deleteCustomer(req.params.id as string);
     sendResponse(res, 200, 'Đã xóa người mua thành công');
 });
-
-
-
-
-
-

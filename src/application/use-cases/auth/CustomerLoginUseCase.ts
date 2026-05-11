@@ -32,8 +32,13 @@ export default class CustomerLoginUseCase {
             throw new AppError('Email hoặc mật khẩu không chính xác!', 401);
         }
 
+        const customerId = (customer as any).id || (customer as any)._id;
+        if (!customerId) {
+            throw new AppError('Lỗi hệ thống: Không trích xuất được ID của khách hàng!', 500);
+        }
+
         const tokenPayload = {
-            id: (customer as any).id || (customer as any)._id,
+            id: customerId,
             role: 'customer'
         };
         const token = this.tokenManager.generateToken(tokenPayload);
@@ -41,7 +46,7 @@ export default class CustomerLoginUseCase {
         return {
             token,
             customer: {
-                id: (customer as any).id || (customer as any)._id,
+                id: customerId,
                 name: customer.name,
                 email: customer.email,
                 phone: customer.phone,
@@ -50,8 +55,3 @@ export default class CustomerLoginUseCase {
         };
     }
 }
-
-
-
-
-

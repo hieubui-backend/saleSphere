@@ -1,6 +1,7 @@
 import CustomerEntity from '../../../domain/entities/CustomerEntity';
 import Email from '../../../domain/value-objects/Email';
 import { ICustomerRepository } from '../../../domain/repositories/ICustomerRepository';
+import AppError from '../../../infrastructure/errors/AppError';
 
 export default class CustomerRegisterUseCase {
     private customerRepository: ICustomerRepository;
@@ -17,7 +18,7 @@ export default class CustomerRegisterUseCase {
         // 1. Kiểm tra email tồn tại
         const existingCustomer = await this.customerRepository.findByEmail(emailVO.getValue());
         if (existingCustomer) {
-            throw new Error('Email này đã được sử dụng!');
+            throw new AppError('Email này đã được sử dụng!', 400);
         }
 
         // 2. Hash password
@@ -35,7 +36,7 @@ export default class CustomerRegisterUseCase {
         // 4. Lưu vào Database
         const savedCustomer = await this.customerRepository.create(newCustomerEntity);
 
-        if (!savedCustomer) throw new Error('Không thể tạo tài khoản');
+        if (!savedCustomer) throw new AppError('Không thể tạo tài khoản', 400);
 
         // Xóa password trước khi trả về
         const response: any = { ...savedCustomer };
@@ -44,8 +45,3 @@ export default class CustomerRegisterUseCase {
         return response;
     }
 }
-
-
-
-
-

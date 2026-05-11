@@ -53,6 +53,15 @@ export default class CartUseCases {
         return await this.cartRepository.save(cartEntity);
     }
 
+    public async removeFromCart(customerId: string, productId: string): Promise<CartEntity | null> {
+        const cartEntity = await this.cartRepository.findByCustomerId(customerId);
+        if (!cartEntity) throw new Error('Giỏ hàng không tồn tại');
+
+        cartEntity.removeItem(productId);
+
+        return await this.cartRepository.save(cartEntity);
+    }
+
     public async checkout(customerId: string, checkoutData: any = {}): Promise<any> {
         const cartEntity = await this.cartRepository.findByCustomerId(customerId);
         if (!cartEntity || cartEntity.items.length === 0) {
@@ -69,8 +78,3 @@ export default class CartUseCases {
         return order;
     }
 }
-
-
-
-
-

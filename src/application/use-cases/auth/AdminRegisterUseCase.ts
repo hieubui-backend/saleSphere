@@ -1,6 +1,7 @@
 import UserEntity from '../../../domain/entities/UserEntity';
 import Email from '../../../domain/value-objects/Email';
 import { IUserRepository } from '../../../domain/repositories/IUserRepository';
+import AppError from '../../../infrastructure/errors/AppError';
 
 export default class AdminRegisterUseCase {
     private userRepository: IUserRepository;
@@ -16,7 +17,7 @@ export default class AdminRegisterUseCase {
 
         const userExists = await this.userRepository.findByEmail(emailVO.getValue());
         if (userExists) {
-            throw new Error('Email này đã được sử dụng!');
+            throw new AppError('Email này đã được sử dụng!', 400);
         }
 
         const hashedPassword = await this.hasher.hash(password);
@@ -30,7 +31,7 @@ export default class AdminRegisterUseCase {
 
         const newUser = await this.userRepository.create(userEntity);
 
-        if (!newUser) throw new Error('Không thể đăng ký admin');
+        if (!newUser) throw new AppError('Không thể đăng ký admin', 400);
 
         const response: any = { ...newUser };
         delete response.password;
@@ -38,8 +39,3 @@ export default class AdminRegisterUseCase {
         return response;
     }
 }
-
-
-
-
-
