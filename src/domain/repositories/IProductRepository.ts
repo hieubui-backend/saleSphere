@@ -5,6 +5,7 @@ export interface IProductRepository {
     findAll(query?: any): Promise<ProductEntity[]>;
     create(productEntity: ProductEntity): Promise<ProductEntity | null>;
     updateById(id: string, productEntity: ProductEntity): Promise<ProductEntity | null>;
+    decrementStock(id: string, quantity: number, session?: any): Promise<boolean>;
     deleteById(id: string): Promise<void>;
     search(keyword: string): Promise<ProductEntity[]>;
 }

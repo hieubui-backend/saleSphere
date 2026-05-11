@@ -37,6 +37,16 @@ export default class ProductRepository implements IProductRepository {
         ).lean();
         return ProductMapper.toDomain(doc);
     }
+    
+    public async decrementStock(id: string, quantity: number, session?: any): Promise<boolean> {
+        const doc = await this.productModel.findOneAndUpdate(
+            { _id: id, stock: { $gte: quantity } },
+            { $inc: { stock: -quantity } },
+            { session, new: true }
+        ).lean();
+        
+        return !!doc;
+    }
 
     public async deleteById(id: string): Promise<void> {
         await this.productModel.findByIdAndDelete(id);

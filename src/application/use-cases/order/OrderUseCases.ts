@@ -31,25 +31,20 @@ export default class OrderUseCases {
                 paymentMethod
             });
 
-            let calculatedTotalAmount = 0; // Biến cộng dồn tiền chuẩn
-
             for (const item of items) {
                 const pId = item.product || item.productId;
                 const productEntity = await this.productRepository.findById(pId);
                 
                 if (!productEntity) throw new Error(`Sản phẩm với ID ${pId} không tồn tại`);
 
-                order.addItem(productEntity, item.quantity);
-                
-                // Tính tiền dựa trên giá gốc của Product DB
-                calculatedTotalAmount += productEntity.price * item.quantity;
+                // Atomic decrement stock
+                const success = await this.productRepository.decrementStock(pId, item.quantity, session);
+                if (!success) {
+                    throw new Error(`Sản phẩm "${productEntity.name}" đã hết hàng hoặc không đủ số lượng (${productEntity.stock} món trong kho)`);
+                }
 
-                // Update stock in DB
-                await this.productRepository.updateById(pId, productEntity);
+                order.addItem(productEntity, item.quantity);
             }
-            
-            // Gắn chặt tổng tiền chuẩn vào Entity trước khi lưu
-            (order as any).totalAmount = calculatedTotalAmount;
 
             const newOrder = await this.orderRepository.create(order, { session });
 
