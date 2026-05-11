@@ -22,6 +22,9 @@ export interface OrderEntityProps {
     totalAmount?: number;
     status?: string;
     paymentStatus?: string;
+    orderCode?: number;
+    createdAt?: Date | string;
+    updatedAt?: Date | string;
 }
 
 /**
@@ -40,8 +43,11 @@ export default class OrderEntity {
     public paymentMethod: string;
     public shippingAddress: string;
     public region: string;
+    public orderCode?: number;
+    public createdAt?: Date | string;
+    public updatedAt?: Date | string;
 
-    constructor({ customerId, shippingAddress, region, paymentMethod, items = [], subtotal = 0, shippingFee = 0, totalAmount = 0, status, paymentStatus = 'pending' }: OrderEntityProps) {
+    constructor({ customerId, shippingAddress, region, paymentMethod, items = [], subtotal = 0, shippingFee = 0, totalAmount = 0, status, paymentStatus = 'pending', orderCode, createdAt, updatedAt }: OrderEntityProps) {
         this.customerId = customerId;
         this.items = items;
         this.subtotal = subtotal;
@@ -52,6 +58,9 @@ export default class OrderEntity {
         this.paymentMethod = paymentMethod || 'cod';
         this.shippingAddress = shippingAddress;
         this.region = region || 'DEFAULT';
+        this.orderCode = orderCode;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
         
         if (this.items.length === 0) {
             this.calculateShippingFee();
@@ -110,8 +119,3 @@ export default class OrderEntity {
         this.paymentStatus = status;
     }
 }
-
-
-
-
-

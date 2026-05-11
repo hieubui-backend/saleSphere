@@ -19,7 +19,10 @@ export default class OrderMapper {
             shippingFee: doc.shippingFee,
             totalAmount: doc.totalAmount,
             status: doc.status,
-            paymentStatus: doc.paymentStatus
+            paymentStatus: doc.paymentStatus,
+            orderCode: doc.orderCode,
+            createdAt: doc.createdAt,
+            updatedAt: doc.updatedAt
         });
         
         order.id = doc._id.toString();
@@ -44,12 +47,8 @@ export default class OrderMapper {
             paymentStatus: entity.paymentStatus,
             shippingAddress: entity.shippingAddress,
             region: entity.region,
-            status: entity.status
+            status: entity.status,
+            orderCode: entity.orderCode
         };
     }
 }
-
-
-
-
-
