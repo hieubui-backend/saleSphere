@@ -10,6 +10,9 @@ interface Config {
     sessionSecret: string;
     logLevel: string;
     corsOrigin: string;
+    payOSClientId: string;
+    payOSApiKey: string;
+    payOSChecksumKey: string;
 }
 
 const config: Config = {
@@ -20,7 +23,10 @@ const config: Config = {
     jwtExpiresIn: process.env.JWT_EXPIRES_IN || '1d',
     sessionSecret: process.env.SESSION_SECRET || 'salesphere_session_secret',
     logLevel: process.env.LOG_LEVEL || 'info',
-    corsOrigin: process.env.CORS_ORIGIN || '*'
+    corsOrigin: process.env.CORS_ORIGIN || '*',
+    payOSClientId: process.env.PAYOS_CLIENT_ID || '',
+    payOSApiKey: process.env.PAYOS_API_KEY || '',
+    payOSChecksumKey: process.env.PAYOS_CHECKSUM_KEY || ''
 };
 
 // Validate required env variables
