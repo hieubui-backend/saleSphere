@@ -13,6 +13,7 @@ import TokenManager from '../infrastructure/security/TokenManager';
 
 // Payment
 import VNPayGateway from '../infrastructure/payment/VNPayGateway';
+import PayOSGateway from '../infrastructure/payment/PayOSGateway';
 
 // Repositories
 import UserRepository from '../infrastructure/repositories/UserRepository';
@@ -31,6 +32,7 @@ import ProductUseCases from '../application/use-cases/product/ProductUseCases';
 import OrderUseCases from '../application/use-cases/order/OrderUseCases';
 import CartUseCases from '../application/use-cases/cart/CartUseCases';
 import CustomerUseCases from '../application/use-cases/customer/CustomerUseCases';
+import PaymentUseCases from '../application/use-cases/payment/PaymentUseCases';
 
 const container = createContainer({
   injectionMode: InjectionMode.PROXY
@@ -49,6 +51,7 @@ container.register({
   hasher: asClass(BcryptHasher).singleton(),
   tokenManager: asClass(TokenManager).singleton(),
   vnPayGateway: asClass(VNPayGateway).singleton(),
+  payOSGateway: asClass(PayOSGateway).singleton(),
   userRepository: asClass(UserRepository).singleton(),
   productRepository: asClass(ProductRepository).singleton(),
   cartRepository: asClass(CartRepository).singleton(),
@@ -65,6 +68,7 @@ container.register({
   orderUseCases: asClass(OrderUseCases).singleton(),
   cartUseCases: asClass(CartUseCases).singleton(),
   customerUseCases: asClass(CustomerUseCases).singleton(),
+  paymentUseCases: asClass(PaymentUseCases).singleton(),
 });
 
 export default container;

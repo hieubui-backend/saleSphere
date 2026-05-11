@@ -7,6 +7,7 @@ import { ICustomer } from '../infrastructure/database/models/customer.model';
 import BcryptHasher from '../infrastructure/security/BcryptHasher';
 import TokenManager from '../infrastructure/security/TokenManager';
 import VNPayGateway from '../infrastructure/payment/VNPayGateway';
+import PayOSGateway from '../infrastructure/payment/PayOSGateway';
 import UserRepository from '../infrastructure/repositories/UserRepository';
 import ProductRepository from '../infrastructure/repositories/ProductRepository';
 import CartRepository from '../infrastructure/repositories/CartRepository';
@@ -21,6 +22,7 @@ import ProductUseCases from '../application/use-cases/product/ProductUseCases';
 import OrderUseCases from '../application/use-cases/order/OrderUseCases';
 import CartUseCases from '../application/use-cases/cart/CartUseCases';
 import CustomerUseCases from '../application/use-cases/customer/CustomerUseCases';
+import PaymentUseCases from '../application/use-cases/payment/PaymentUseCases';
 
 export interface ICradle {
     // Models
@@ -34,6 +36,7 @@ export interface ICradle {
     hasher: BcryptHasher;
     tokenManager: TokenManager;
     vnPayGateway: VNPayGateway;
+    payOSGateway: PayOSGateway;
     userRepository: UserRepository;
     productRepository: ProductRepository;
     cartRepository: CartRepository;
@@ -50,6 +53,7 @@ export interface ICradle {
     orderUseCases: OrderUseCases;
     cartUseCases: CartUseCases;
     customerUseCases: CustomerUseCases;
+    paymentUseCases: PaymentUseCases;
 }
 
 
