@@ -7,4 +7,5 @@ export interface IOrderRepository {
     findAll(query?: any): Promise<OrderEntity[]>;
     save(orderEntity: OrderEntity, options?: any): Promise<OrderEntity | null>;
     getDashboardStats(): Promise<any>;
+    findByOrderCode(orderCode: number): Promise<OrderEntity | null>;
 }

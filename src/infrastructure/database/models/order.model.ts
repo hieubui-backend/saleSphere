@@ -12,7 +12,7 @@ export interface IOrder extends Document {
     subtotal: number;
     shippingFee: number;
     totalAmount: number;
-    paymentMethod: 'vnpay' | 'momo' | 'cod';
+    paymentMethod: 'vnpay' | 'momo' | 'cod' | 'bank_transfer';
     paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
     shippingAddress?: string;
     region: string;
@@ -41,6 +41,7 @@ export interface IOrder extends Document {
     createdAt: Date;
     updatedAt: Date;
     buyerId: mongoose.Types.ObjectId;
+    orderCode?: number;
 }
 
 const orderSchema: Schema = new Schema({
@@ -59,7 +60,7 @@ const orderSchema: Schema = new Schema({
     
     paymentMethod: { 
         type: String, 
-        enum: ['vnpay', 'momo', 'cod'], 
+        enum: ['vnpay', 'momo', 'cod', 'bank_transfer'], 
         default: 'cod' 
     },
     paymentStatus: { 
@@ -109,7 +110,8 @@ const orderSchema: Schema = new Schema({
 
     adminNote: { type: String, default: '' }, 
     updatedBy: { type: String, default: 'system' }, 
-    processedAt: { type: Date }
+    processedAt: { type: Date },
+    orderCode: { type: Number }
 
 }, { 
     timestamps: true,
