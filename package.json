@@ -8,7 +8,10 @@
     "build": "tsc",
     "seed:admin": "ts-node seedAdmin.ts",
     "reset:db": "ts-node resetDb.ts",
-    "test": "jest"
+    "test": "jest",
+    "test:race": "ts-node scratch/test_race_condition.ts",
+    "test:payment": "ts-node scratch/test_payment_idempotency.ts",
+    "test:cache": "ts-node scratch/test_redis_caching.ts"
   },
   "dependencies": {
     "@payos/node": "^2.0.5",
@@ -29,6 +32,7 @@
     "helmet": "^8.1.0",
     "hpp": "^0.2.3",
     "http-errors": "~1.6.3",
+    "ioredis": "^5.10.1",
     "joi": "^18.0.2",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.0.0",
@@ -47,6 +51,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/express-session": "^1.19.0",
+    "@types/ioredis": "^4.28.10",
     "@types/jest": "^30.0.0",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/morgan": "^1.9.10",

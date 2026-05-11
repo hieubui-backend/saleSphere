@@ -10,6 +10,7 @@ import CustomerEntity from '../infrastructure/database/models/customer.model';
 // Security
 import BcryptHasher from '../infrastructure/security/BcryptHasher';
 import TokenManager from '../infrastructure/security/TokenManager';
+import RedisService from '../infrastructure/cache/RedisService';
 
 // Payment
 import VNPayGateway from '../infrastructure/payment/VNPayGateway';
@@ -50,6 +51,7 @@ container.register({
   // Infrastructure
   hasher: asClass(BcryptHasher).singleton(),
   tokenManager: asClass(TokenManager).singleton(),
+  redisService: asClass(RedisService).singleton(),
   vnPayGateway: asClass(VNPayGateway).singleton(),
   payOSGateway: asClass(PayOSGateway).singleton(),
   userRepository: asClass(UserRepository).singleton(),

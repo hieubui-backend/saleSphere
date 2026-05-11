@@ -13,6 +13,7 @@ interface Config {
     payOSClientId: string;
     payOSApiKey: string;
     payOSChecksumKey: string;
+    redisUrl: string;
 }
 
 const config: Config = {
@@ -26,7 +27,8 @@ const config: Config = {
     corsOrigin: process.env.CORS_ORIGIN || '*',
     payOSClientId: process.env.PAYOS_CLIENT_ID || '',
     payOSApiKey: process.env.PAYOS_API_KEY || '',
-    payOSChecksumKey: process.env.PAYOS_CHECKSUM_KEY || ''
+    payOSChecksumKey: process.env.PAYOS_CHECKSUM_KEY || '',
+    redisUrl: process.env.REDIS_URL || 'redis://localhost:6379'
 };
 
 // Validate required env variables

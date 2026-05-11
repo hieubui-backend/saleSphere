@@ -6,6 +6,7 @@ import { ICart } from '../infrastructure/database/models/cart.model';
 import { ICustomer } from '../infrastructure/database/models/customer.model';
 import BcryptHasher from '../infrastructure/security/BcryptHasher';
 import TokenManager from '../infrastructure/security/TokenManager';
+import RedisService from '../infrastructure/cache/RedisService';
 import VNPayGateway from '../infrastructure/payment/VNPayGateway';
 import PayOSGateway from '../infrastructure/payment/PayOSGateway';
 import UserRepository from '../infrastructure/repositories/UserRepository';
@@ -35,6 +36,7 @@ export interface ICradle {
     // Infrastructure
     hasher: BcryptHasher;
     tokenManager: TokenManager;
+    redisService: RedisService;
     vnPayGateway: VNPayGateway;
     payOSGateway: PayOSGateway;
     userRepository: UserRepository;

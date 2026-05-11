@@ -1,19 +1,47 @@
 import ProductEntity from '../../../domain/entities/ProductEntity';
 import { IProductRepository } from '../../../domain/repositories/IProductRepository';
+import RedisService from '../../../infrastructure/cache/RedisService';
 
 export default class ProductUseCases {
     private productRepository: IProductRepository;
+    private redisService: RedisService;
 
-    constructor({ productRepository }: { productRepository: IProductRepository }) {
+    constructor({ productRepository, redisService }: { productRepository: IProductRepository, redisService: RedisService }) {
         this.productRepository = productRepository;
+        this.redisService = redisService;
     }
 
     public async getAllProducts(query: any = {}): Promise<ProductEntity[]> {
-        return await this.productRepository.findAll(query);
+        const cacheKey = `products:all:${JSON.stringify(query)}`;
+        const cachedData = await this.redisService.get(cacheKey);
+
+        if (cachedData) {
+            const parsed = JSON.parse(cachedData);
+            return parsed.map((item: any) => new ProductEntity(item));
+        }
+
+        const products = await this.productRepository.findAll(query);
+        
+        // Lưu vào cache với Random TTL (1 tiếng)
+        await this.redisService.setWithRandomTTL(cacheKey, JSON.stringify(products), 3600);
+        
+        return products;
     }
 
     public async getProductById(id: string): Promise<ProductEntity | null> {
-        return await this.productRepository.findById(id);
+        const cacheKey = `product:${id}`;
+        const cachedData = await this.redisService.get(cacheKey);
+
+        if (cachedData) {
+            return new ProductEntity(JSON.parse(cachedData));
+        }
+
+        const product = await this.productRepository.findById(id);
+        if (product) {
+            await this.redisService.setWithRandomTTL(cacheKey, JSON.stringify(product), 3600);
+        }
+        
+        return product;
     }
 
     public async createProduct(productData: any): Promise<ProductEntity | null> {
@@ -32,7 +60,13 @@ export default class ProductUseCases {
         }
 
         const productEntity = new ProductEntity(cleanData);
-        return await this.productRepository.create(productEntity);
+        const newProduct = await this.productRepository.create(productEntity);
+        
+        if (newProduct) {
+            await this.clearProductCache();
+        }
+        
+        return newProduct;
     }
 
     public async updateProduct(id: string, updateData: any): Promise<ProductEntity | null> {
@@ -43,11 +77,27 @@ export default class ProductUseCases {
         if (updateData.price !== undefined) product.price = Number(updateData.price) || 0;
         if (updateData.stock !== undefined) product.stock = Number(updateData.stock) || 0;
 
-        return await this.productRepository.updateById(id, product);
+        const updatedProduct = await this.productRepository.updateById(id, product);
+        
+        if (updatedProduct) {
+            await this.clearProductCache(id);
+        }
+        
+        return updatedProduct;
     }
 
     public async deleteProduct(id: string): Promise<void> {
-        return await this.productRepository.deleteById(id);
+        await this.productRepository.deleteById(id);
+        await this.clearProductCache(id);
+    }
+
+    private async clearProductCache(id?: string): Promise<void> {
+        // Xóa danh sách và chi tiết sản phẩm cụ thể
+        const keysToDel = ['products:all:*'];
+        if (id) keysToDel.push(`product:${id}`);
+        
+        await this.redisService.clearPattern('products:all:*');
+        if (id) await this.redisService.del(`product:${id}`);
     }
 }
 
