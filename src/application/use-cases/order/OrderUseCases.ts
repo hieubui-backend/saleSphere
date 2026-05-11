@@ -31,6 +31,8 @@ export default class OrderUseCases {
                 paymentMethod
             });
 
+            let calculatedTotalAmount = 0; // Biến cộng dồn tiền chuẩn
+
             for (const item of items) {
                 const pId = item.product || item.productId;
                 const productEntity = await this.productRepository.findById(pId);
@@ -38,10 +40,16 @@ export default class OrderUseCases {
                 if (!productEntity) throw new Error(`Sản phẩm với ID ${pId} không tồn tại`);
 
                 order.addItem(productEntity, item.quantity);
+                
+                // Tính tiền dựa trên giá gốc của Product DB
+                calculatedTotalAmount += productEntity.price * item.quantity;
 
                 // Update stock in DB
                 await this.productRepository.updateById(pId, productEntity);
             }
+            
+            // Gắn chặt tổng tiền chuẩn vào Entity trước khi lưu
+            (order as any).totalAmount = calculatedTotalAmount;
 
             const newOrder = await this.orderRepository.create(order, { session });
 
@@ -125,6 +133,20 @@ export default class OrderUseCases {
         return await this.orderRepository.findById(orderId);
     }
 
+    public async createDispute(orderId: string, reason: string): Promise<OrderEntity | null> {
+        const order = await this.orderRepository.findById(orderId);
+        if (!order) throw new Error('Không tìm thấy đơn hàng');
+
+        if (order.status !== 'completed') {
+            throw new Error('Chỉ có thể khiếu nại những đơn hàng đã hoàn thành');
+        }
+
+        order.changeStatus('dispute_escalated');
+        (order as any).disputeReason = reason;
+        
+        return await this.orderRepository.save(order);
+    }
+
     public async resolveDispute(orderId: string, { action, response }: any): Promise<any> {
         const order = await this.orderRepository.findById(orderId);
         if (!order) throw new Error('Không tìm thấy đơn hàng');
@@ -147,9 +169,7 @@ export default class OrderUseCases {
         await this.restockProducts(order);
         return await this.orderRepository.save(order);
     }
+    public async saveOrder(order: OrderEntity): Promise<OrderEntity | null> {
+        return await this.orderRepository.save(order);
+    }
 }
-
-
-
-
-

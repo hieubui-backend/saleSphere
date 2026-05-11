@@ -45,6 +45,30 @@ export const protect = (req: Request, res: Response, next: NextFunction) => {
 };
 
 /**
+ * 2.5 XÁC THỰC TÙY CHỌN (Dành cho Guest Cart)
+ */
+export const optionalAuth = (req: Request, res: Response, next: NextFunction) => {
+    let token: string | undefined;
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+        token = req.headers.authorization.split(' ')[1];
+    } else if (req.session && req.session.user) {
+        req.user = req.session.user;
+        return next();
+    }
+
+    if (token) {
+        try {
+            const secret = process.env.JWT_SECRET || 'salesphere_secret_key';
+            const decoded = jwt.verify(token, secret);
+            req.user = decoded; 
+        } catch (error) {
+            // Bỏ qua lỗi token để cho phép Guest đi tiếp
+        }
+    }
+    next();
+};
+
+/**
  * 3. KIỂM TRA QUYỀN HẠN (Phân quyền Role)
  */
 export const checkRole = (...roles: string[]) => {
@@ -68,8 +92,3 @@ export const checkRole = (...roles: string[]) => {
         next();
     };
 };
-
-
-
-
-

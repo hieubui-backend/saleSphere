@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import AppError from '../infrastructure/errors/AppError';
 import { productValidationSchema } from '../presentation/dtos/ProductDTO';
 import { userRegisterSchema, userLoginSchema } from '../presentation/dtos/UserDTO';
+import { customerRegisterSchema, customerLoginSchema } from '../presentation/dtos/CustomerDTO';
 
 export const validateProduct = (req: Request, res: Response, next: NextFunction) => {
     if (req.body.price !== undefined) req.body.price = (req.body.price === '') ? 0 : Number(req.body.price);
@@ -34,6 +35,25 @@ export const validateProduct = (req: Request, res: Response, next: NextFunction)
     next();
 };
 
+export const validateCustomerRegister = (req: Request, res: Response, next: NextFunction) => {
+    const { error, value } = customerRegisterSchema.validate(req.body, { abortEarly: false, convert: true });
+    if (error) {
+        const msg = error.details.map(d => d.message).join(', ');
+        return next(new AppError(msg, 400));
+    }
+    req.body = value;
+    next();
+};
+
+export const validateCustomerLogin = (req: Request, res: Response, next: NextFunction) => {
+    const { error, value } = customerLoginSchema.validate(req.body, { abortEarly: false, convert: true });
+    if (error) {
+        const msg = error.details[0].message;
+        return next(new AppError(msg, 400));
+    }
+    req.body = value;
+    next();
+};
 export const validateUserRegister = (req: Request, res: Response, next: NextFunction) => {
     const { error, value } = userRegisterSchema.validate(req.body, { abortEarly: false, convert: true });
     if (error) {
@@ -53,8 +73,3 @@ export const validateUserLogin = (req: Request, res: Response, next: NextFunctio
     req.body = value;
     next();
 };
-
-
-
-
-

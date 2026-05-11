@@ -73,6 +73,10 @@ router.get('/:id', protect, orderController.getOrderById);
  *             properties:
  *               shippingAddress:
  *                 type: string
+ *               paymentMethod:
+ *                 type: string
+ *               region:
+ *                 type: string
  *               items:
  *                 type: array
  *                 items:
@@ -198,8 +202,3 @@ router.put('/:id/cancel', protect, orderController.cancelOrder);
 router.post('/:id/dispute', protect, orderController.resolveDispute);
 
 export default router;
-
-
-
-
-
