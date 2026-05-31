@@ -1,22 +1,38 @@
 import mongoose from 'mongoose';
 import OrderEntity from '../../../domain/entities/OrderEntity';
 import { IOrderRepository } from '../../../domain/repositories/IOrderRepository';
+import { IUserRepository } from '../../../domain/repositories/IUserRepository';
 import PayOSGateway from '../../../infrastructure/payment/PayOSGateway';
 import VNPayGateway from '../../../infrastructure/payment/VNPayGateway';
+import EmailService from '../../../infrastructure/services/EmailService';
+import EmailQueue from '../../../infrastructure/queue/EmailQueue';
 import config from '../../../config/config';
+
 
 export default class PaymentUseCases {
     private orderRepository: IOrderRepository;
+    private userRepository: IUserRepository;
+    private emailService: EmailService;
+    private emailQueue: EmailQueue;
     private payOSGateway: PayOSGateway;
+
     private vnPayGateway: VNPayGateway;
 
-    constructor({ orderRepository, payOSGateway, vnPayGateway }: { 
+    constructor({ orderRepository, userRepository, emailService, emailQueue, payOSGateway, vnPayGateway }: { 
         orderRepository: IOrderRepository, 
+        userRepository: IUserRepository,
+        emailService: EmailService,
+        emailQueue: EmailQueue,
         payOSGateway: PayOSGateway,
+
         vnPayGateway: VNPayGateway 
     }) {
         this.orderRepository = orderRepository;
+        this.userRepository = userRepository;
+        this.emailService = emailService;
+        this.emailQueue = emailQueue;
         this.payOSGateway = payOSGateway;
+
         this.vnPayGateway = vnPayGateway;
     }
 
@@ -87,6 +103,11 @@ export default class PaymentUseCases {
                 
                 const updatedOrder = await this.orderRepository.save(order, { session });
                 await session.commitTransaction();
+
+                // GỬI EMAIL XÁC NHẬN QUA MESSAGE QUEUE (BULLMQ)
+                this.addOrderConfirmationToQueue(updatedOrder!);
+
+
                 return updatedOrder;
             }
             
@@ -100,4 +121,19 @@ export default class PaymentUseCases {
             session.endSession();
         }
     }
+
+    /**
+     * Thêm job gửi email vào queue
+     */
+    private async addOrderConfirmationToQueue(order: OrderEntity): Promise<void> {
+        try {
+            const user = await this.userRepository.findById(order.customerId);
+            if (user && user.email) {
+                await this.emailQueue.addOrderConfirmationJob(user.email, order);
+            }
+        } catch (error) {
+            console.error("Error adding order confirmation job to queue:", error);
+        }
+    }
 }
+

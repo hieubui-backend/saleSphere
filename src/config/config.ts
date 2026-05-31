@@ -14,6 +14,11 @@ interface Config {
     payOSApiKey: string;
     payOSChecksumKey: string;
     redisUrl: string;
+    mailHost: string;
+    mailPort: number;
+    mailUser: string;
+    mailPass: string;
+    mailFrom: string;
 }
 
 const config: Config = {
@@ -28,7 +33,12 @@ const config: Config = {
     payOSClientId: process.env.PAYOS_CLIENT_ID || '',
     payOSApiKey: process.env.PAYOS_API_KEY || '',
     payOSChecksumKey: process.env.PAYOS_CHECKSUM_KEY || '',
-    redisUrl: process.env.REDIS_URL || 'redis://localhost:6379'
+    redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
+    mailHost: process.env.MAIL_HOST || 'smtp.gmail.com',
+    mailPort: Number(process.env.MAIL_PORT) || 587,
+    mailUser: process.env.MAIL_USERNAME || '',
+    mailPass: process.env.MAIL_PASSWORD || '',
+    mailFrom: process.env.MAIL_FROM_ADDRESS || 'SaleSphere <noreply@salesphere.com>'
 };
 
 // Validate required env variables

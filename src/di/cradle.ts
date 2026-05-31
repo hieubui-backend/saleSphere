@@ -7,6 +7,7 @@ import { ICustomer } from '../infrastructure/database/models/customer.model';
 import BcryptHasher from '../infrastructure/security/BcryptHasher';
 import TokenManager from '../infrastructure/security/TokenManager';
 import RedisService from '../infrastructure/cache/RedisService';
+import EmailService from '../infrastructure/services/EmailService';
 import VNPayGateway from '../infrastructure/payment/VNPayGateway';
 import PayOSGateway from '../infrastructure/payment/PayOSGateway';
 import UserRepository from '../infrastructure/repositories/UserRepository';
@@ -37,6 +38,7 @@ export interface ICradle {
     hasher: BcryptHasher;
     tokenManager: TokenManager;
     redisService: RedisService;
+    emailService: EmailService;
     vnPayGateway: VNPayGateway;
     payOSGateway: PayOSGateway;
     userRepository: UserRepository;

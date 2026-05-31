@@ -1,16 +1,25 @@
 import CustomerEntity from '../../../domain/entities/CustomerEntity';
 import Email from '../../../domain/value-objects/Email';
 import { ICustomerRepository } from '../../../domain/repositories/ICustomerRepository';
+import EmailService from '../../../infrastructure/services/EmailService';
+import EmailQueue from '../../../infrastructure/queue/EmailQueue';
+
 import AppError from '../../../infrastructure/errors/AppError';
 
 export default class CustomerRegisterUseCase {
     private customerRepository: ICustomerRepository;
-    private hasher: any; // Cần type sau khi convert Hasher
+    private emailService: EmailService;
+    private emailQueue: EmailQueue;
+    private hasher: any;
 
-    constructor({ customerRepository, hasher }: { customerRepository: ICustomerRepository, hasher: any }) {
+
+    constructor({ customerRepository, emailService, emailQueue, hasher }: { customerRepository: ICustomerRepository, emailService: EmailService, emailQueue: EmailQueue, hasher: any }) {
         this.customerRepository = customerRepository;
+        this.emailService = emailService;
+        this.emailQueue = emailQueue;
         this.hasher = hasher;
     }
+
 
     public async execute({ name, email, password, phone, address }: any): Promise<any> {
         const emailVO = new Email(email);
@@ -37,6 +46,10 @@ export default class CustomerRegisterUseCase {
         const savedCustomer = await this.customerRepository.create(newCustomerEntity);
 
         if (!savedCustomer) throw new AppError('Không thể tạo tài khoản', 400);
+
+        // 5. Gửi email chào mừng (Background via Queue)
+        this.emailQueue.addWelcomeEmailJob(savedCustomer.email, savedCustomer.name);
+
 
         // Xóa password trước khi trả về
         const response: any = { ...savedCustomer };

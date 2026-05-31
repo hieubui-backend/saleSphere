@@ -140,11 +140,41 @@ mongoose.connect(config.mongoUri)
             logger.info(`🚀 API Base: http://localhost:${PORT}/api`);
             logger.info(`📄 API Docs: http://localhost:${PORT}/api-docs`);
         });
+
+        // --- 9. KHỞI TẠO WORKERS (BACKGROUND JOBS) ---
+        container.resolve('emailWorker');
+        logger.info('⚙️  Email Worker has been initialized.');
+
     })
     .catch(err => {
         logger.error('❌ Lỗi kết nối MongoDB: %s', err.message);
         process.exit(1);
     });
+
+// --- 10. GRACEFUL SHUTDOWN ---
+const gracefulShutdown = async () => {
+    logger.info('🛑 Shutting down gracefully...');
+    try {
+        const emailWorker = container.resolve('emailWorker') as any;
+        const emailQueue = container.resolve('emailQueue') as any;
+        
+        await emailWorker.close();
+        await emailQueue.close();
+        
+        await mongoose.connection.close();
+        server.close(() => {
+            logger.info('👋 Server closed.');
+            process.exit(0);
+        });
+    } catch (error: any) {
+        logger.error('❌ Error during shutdown: %s', error.message);
+        process.exit(1);
+    }
+};
+
+process.on('SIGINT', gracefulShutdown);
+process.on('SIGTERM', gracefulShutdown);
+
 
 
 

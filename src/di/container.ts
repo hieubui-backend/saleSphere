@@ -11,10 +11,14 @@ import CustomerEntity from '../infrastructure/database/models/customer.model';
 import BcryptHasher from '../infrastructure/security/BcryptHasher';
 import TokenManager from '../infrastructure/security/TokenManager';
 import RedisService from '../infrastructure/cache/RedisService';
+import EmailService from '../infrastructure/services/EmailService';
 
 // Payment
 import VNPayGateway from '../infrastructure/payment/VNPayGateway';
 import PayOSGateway from '../infrastructure/payment/PayOSGateway';
+import EmailQueue from '../infrastructure/queue/EmailQueue';
+import EmailWorker from '../infrastructure/queue/workers/EmailWorker';
+
 
 // Repositories
 import UserRepository from '../infrastructure/repositories/UserRepository';
@@ -52,8 +56,12 @@ container.register({
   hasher: asClass(BcryptHasher).singleton(),
   tokenManager: asClass(TokenManager).singleton(),
   redisService: asClass(RedisService).singleton(),
+  emailService: asClass(EmailService).singleton(),
   vnPayGateway: asClass(VNPayGateway).singleton(),
   payOSGateway: asClass(PayOSGateway).singleton(),
+  emailQueue: asClass(EmailQueue).singleton(),
+  emailWorker: asClass(EmailWorker).singleton(),
+
   userRepository: asClass(UserRepository).singleton(),
   productRepository: asClass(ProductRepository).singleton(),
   cartRepository: asClass(CartRepository).singleton(),
