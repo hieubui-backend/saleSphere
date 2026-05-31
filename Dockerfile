@@ -34,6 +34,7 @@ COPY --from=builder /app/public ./public
 EXPOSE 5000
 
 # Chạy với user non-root (bảo mật)
+RUN mkdir -p logs && chown -R node:node logs
 USER node
 
 CMD ["node", "dist/server.js"]

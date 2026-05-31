@@ -1,0 +1,19 @@
+# Node.js dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Git directory
+.git/
+
+# Logs
+logs/
+*.log
+
+# Environment variables
+.env
+
+# Coverage reports
+coverage/

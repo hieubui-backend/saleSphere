@@ -1,5 +1,7 @@
 import swaggerJsdoc from 'swagger-jsdoc';
 
+import path from 'path';
+
 const options: swaggerJsdoc.Options = {
     definition: {
         openapi: '3.0.0',
@@ -25,9 +27,9 @@ const options: swaggerJsdoc.Options = {
         },
     },
     apis: [
-        './src/config/swagger-schemas.ts',
-        './src/presentation/routes/**/*.ts'
-    ], // Tự động quét các file schema và route TS
+        path.join(__dirname, './swagger-schemas.*'),
+        path.join(__dirname, '../presentation/routes/**/*.*')
+    ], // Tự động quét các file schema và route TS/JS
 };
 
 const specs = swaggerJsdoc(options);
