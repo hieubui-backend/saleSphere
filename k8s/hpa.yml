@@ -1,0 +1,34 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: salesphere-hpa
+  namespace: salesphere
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: salesphere-app
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    # Scale out khi CPU vượt 70%
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    # Scale out khi Memory vượt 80%
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+  behavior:
+    scaleDown:
+      # Chờ 5 phút trước khi scale down (tránh flapping)
+      stabilizationWindowSeconds: 300
+    scaleUp:
+      # Scale up ngay lập tức khi cần
+      stabilizationWindowSeconds: 0

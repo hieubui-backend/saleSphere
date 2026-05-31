@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: salesphere-redis
+  namespace: salesphere
+spec:
+  serviceName: salesphere-redis
+  replicas: 1
+  selector:
+    matchLabels:
+      app: salesphere-redis
+  template:
+    metadata:
+      labels:
+        app: salesphere-redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          command:
+            - redis-server
+            - "--save"
+            - "60"
+            - "1"
+            - "--requirepass"
+            - "$(REDIS_PASSWORD)"
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: salesphere-secrets
+                  key: REDIS_PASSWORD
+          ports:
+            - containerPort: 6379
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+  # PersistentVolumeClaim – data không bị mất khi pod restart
+  volumeClaimTemplates:
+    - metadata:
+        name: redis-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: salesphere-redis
+  namespace: salesphere
+spec:
+  selector:
+    app: salesphere-redis
+  ports:
+    - port: 6379
+      targetPort: 6379
+  type: ClusterIP  # Chỉ accessible nội bộ cluster

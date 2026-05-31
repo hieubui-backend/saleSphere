@@ -1,4 +1,4 @@
-name: CD – Build & Push Docker Image
+name: CD – Build, Push & Deploy to Kubernetes
 
 on:
   push:
@@ -7,33 +7,32 @@ on:
 
 jobs:
   # ─────────────────────────────────────────────────────────
-  # JOB: Build Docker image và push lên GitHub Container Registry
+  # JOB 1: Build Docker image và push lên GHCR
   # ─────────────────────────────────────────────────────────
   docker:
     name: Build & Push to GHCR
     runs-on: ubuntu-latest
+    outputs:
+      # Expose image tag để job 2 dùng
+      image-tag: ${{ steps.meta.outputs.version }}
 
     permissions:
       contents: read
-      packages: write   # Cần quyền này để push lên GHCR
+      packages: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Trích xuất metadata (tags, labels) để gán cho Docker image
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
-            # Tag "latest" cho mọi push vào main
             type=raw,value=latest,enable={{is_default_branch}}
-            # Tag theo SHA commit (ví dụ: sha-abc1234) – immutable, dùng cho CD
             type=sha,prefix=sha-,format=short
 
-      # Login vào GitHub Container Registry
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -41,11 +40,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Bật BuildKit cache để tăng tốc build lần sau
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Build và push image
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -53,13 +50,68 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          # Cache layer từ lần build trước (tăng tốc ~50%)
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # In ra thông tin image vừa push để dễ theo dõi
       - name: Print image info
         run: |
-          echo "✅ Image pushed successfully!"
+          echo "✅ Image pushed!"
           echo "📦 Tags: ${{ steps.meta.outputs.tags }}"
-          echo "🔗 URL: https://ghcr.io/${{ github.repository }}"
+
+  # ─────────────────────────────────────────────────────────
+  # JOB 2: Deploy lên Kubernetes cluster
+  # ─────────────────────────────────────────────────────────
+  deploy-to-k8s:
+    name: Deploy to Kubernetes
+    runs-on: ubuntu-latest
+    needs: docker     # Chỉ chạy sau khi job docker thành công
+    environment: production   # Yêu cầu approve thủ công nếu muốn (optional)
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      # Giải mã kubeconfig từ GitHub Secret và lưu vào file tạm
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG_B64 }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      # Apply toàn bộ k8s manifest (namespace, configmap, deployment, service, ingress, hpa)
+      # Secret KHÔNG apply ở đây (phải tạo thủ công trước trên cluster)
+      - name: Apply Kubernetes manifests
+        run: |
+          kubectl apply -f k8s/namespace.yml
+          kubectl apply -f k8s/configmap.yml
+          kubectl apply -f k8s/redis.yml
+          kubectl apply -f k8s/deployment.yml
+          kubectl apply -f k8s/service.yml
+          kubectl apply -f k8s/ingress.yml
+          kubectl apply -f k8s/hpa.yml
+
+      # Cập nhật image tag mới nhất cho deployment (immutable SHA tag)
+      - name: Update deployment image
+        run: |
+          IMAGE="ghcr.io/${{ github.repository }}:sha-$(echo ${{ github.sha }} | cut -c1-7)"
+          echo "🚀 Deploying image: $IMAGE"
+          kubectl set image deployment/salesphere-app \
+            app=$IMAGE \
+            --namespace=salesphere
+
+      # Chờ rolling update hoàn tất (timeout 3 phút)
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/salesphere-app \
+            --namespace=salesphere \
+            --timeout=180s
+
+      - name: Deployment success
+        run: |
+          echo "✅ Deployment complete!"
+          kubectl get pods -n salesphere

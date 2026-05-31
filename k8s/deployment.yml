@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: salesphere-app
+  namespace: salesphere
+  labels:
+    app: salesphere-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: salesphere-app
+  # Zero-downtime rolling update
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1        # Tạo 1 pod mới trước khi xóa pod cũ
+      maxUnavailable: 0  # Luôn giữ đủ replicas → không bị downtime
+  template:
+    metadata:
+      labels:
+        app: salesphere-app
+    spec:
+      # Pull image từ GHCR (GitHub Container Registry)
+      imagePullSecrets:
+        - name: ghcr-secret   # Tạo bằng: kubectl create secret docker-registry ghcr-secret ...
+
+      containers:
+        - name: app
+          # Image sẽ được CD pipeline cập nhật tự động (kustomize / kubectl set image)
+          image: ghcr.io/hieubui-backend/salesphere:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5000
+
+          # Load biến từ ConfigMap và Secret
+          envFrom:
+            - configMapRef:
+                name: salesphere-config
+            - secretRef:
+                name: salesphere-secrets
+
+          # Giới hạn tài nguyên (quan trọng để HPA hoạt động đúng)
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+
+          # Health checks
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 5000
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 3

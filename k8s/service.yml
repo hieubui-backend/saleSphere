@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: salesphere-service
+  namespace: salesphere
+spec:
+  selector:
+    app: salesphere-app
+  ports:
+    - name: http
+      port: 80
+      targetPort: 5000
+      protocol: TCP
+  # ClusterIP: chỉ accessible nội bộ cluster
+  # Ingress sẽ route traffic từ ngoài vào service này
+  type: ClusterIP
