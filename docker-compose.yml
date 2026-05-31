@@ -1,16 +1,109 @@
 version: '3.8'
 
 services:
+  # ─────────────────────────────────────────
+  # 1. MongoDB Database
+  # ─────────────────────────────────────────
+  mongodb:
+    image: mongo:7
+    container_name: salesphere-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-salesphere_secret}
+      MONGO_INITDB_DATABASE: salesphere_db
+    ports:
+      - "27017:27017"   # Chỉ expose khi debug, đóng lại trên production
+    volumes:
+      - mongo_data:/data/db
+      - ./mongo-init/init.js:/docker-entrypoint-initdb.d/init.js:ro
+    networks:
+      - salesphere-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # ─────────────────────────────────────────
+  # 2. Redis – Cache & BullMQ Queue
+  # ─────────────────────────────────────────
   redis:
     image: redis:7-alpine
     container_name: salesphere-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --save 60 1
+      --loglevel warning
+      --requirepass ${REDIS_PASSWORD:-redis_secret}
+    volumes:
+      - redis_data:/data
     ports:
-      - "6379:6379"
-    restart: always
-    command: redis-server --save 60 1 --loglevel warning
+      - "6379:6379"   # Đóng lại trên production
+    networks:
+      - salesphere-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_secret}", "ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────────────────────
+  # 3. Node.js Application
+  # ─────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: salesphere-app
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # Override để trỏ đúng service name trong Docker network
+      MONGO_URI: mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASSWORD:-salesphere_secret}@mongodb:27017/salesphere_db?authSource=admin
+      REDIS_URL: redis://:${REDIS_PASSWORD:-redis_secret}@redis:6379
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - salesphere-network
+    # Không expose port 5000 ra ngoài – chỉ Nginx mới gọi được
+
+  # ─────────────────────────────────────────
+  # 4. Nginx – Reverse Proxy
+  # ─────────────────────────────────────────
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: salesphere-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"       # HTTP
+      - "443:443"     # HTTPS (sẽ dùng sau khi có SSL cert)
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./public:/app/public:ro
+    depends_on:
+      - app
     networks:
       - salesphere-network
 
+# ─────────────────────────────────────────
+# Volumes – Data persistent
+# ─────────────────────────────────────────
+volumes:
+  mongo_data:
+    driver: local
+  redis_data:
+    driver: local
+
+# ─────────────────────────────────────────
+# Networks
+# ─────────────────────────────────────────
 networks:
   salesphere-network:
     driver: bridge
