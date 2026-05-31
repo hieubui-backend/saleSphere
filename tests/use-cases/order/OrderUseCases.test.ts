@@ -34,7 +34,8 @@ describe('OrderUseCases', () => {
         };
         mockProductRepository = {
             findById: jest.fn(),
-            updateById: jest.fn()
+            updateById: jest.fn(),
+            decrementStock: jest.fn().mockResolvedValue(true)  // Atomic stock decrement
         };
         mockCustomerRepository = {};
 
@@ -62,8 +63,7 @@ describe('OrderUseCases', () => {
 
             const result = await orderUseCases.createOrder(userId, { items, shippingAddress: 'Addr', region: 'HA_NOI' });
 
-            expect(product.stock).toBe(8);
-            expect(mockProductRepository.updateById).toHaveBeenCalledWith('p1', product);
+            expect(mockProductRepository.decrementStock).toHaveBeenCalledWith('p1', 2, mockSession);
             expect(mockOrderRepository.create).toHaveBeenCalled();
             expect(mockSession.commitTransaction).toHaveBeenCalled();
             expect(result!.totalAmount).toBe(20200); // 2 * 100 + 20000 ship
@@ -78,9 +78,11 @@ describe('OrderUseCases', () => {
                 deductStock: jest.fn().mockImplementation(() => { throw new Error('không đủ hàng'); })
             };
             mockProductRepository.findById.mockResolvedValue(product);
+            // decrementStock trả về false – simulate hết hàng
+            mockProductRepository.decrementStock.mockResolvedValue(false);
 
             await expect(orderUseCases.createOrder('u1', { items, shippingAddress: 'Addr' }))
-                .rejects.toThrow('không đủ hàng');
+                .rejects.toThrow('không đủ số lượng');
             
             expect(mockSession.abortTransaction).toHaveBeenCalled();
         });

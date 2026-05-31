@@ -3,6 +3,7 @@ import ProductUseCases from '../../../src/application/use-cases/product/ProductU
 describe('ProductUseCases', () => {
     let productUseCases: ProductUseCases;
     let mockProductRepository: any;
+    let mockRedisService: any;
 
     beforeEach(() => {
         mockProductRepository = {
@@ -12,7 +13,17 @@ describe('ProductUseCases', () => {
             updateById: jest.fn(),
             deleteById: jest.fn()
         };
-        productUseCases = new ProductUseCases({ productRepository: mockProductRepository });
+        // Mock RedisService – trả về null để simulate cache MISS
+        mockRedisService = {
+            get: jest.fn().mockResolvedValue(null),
+            setWithRandomTTL: jest.fn().mockResolvedValue(undefined),
+            del: jest.fn().mockResolvedValue(undefined),
+            clearPattern: jest.fn().mockResolvedValue(undefined)
+        };
+        productUseCases = new ProductUseCases({
+            productRepository: mockProductRepository,
+            redisService: mockRedisService
+        });
     });
 
     describe('getAllProducts', () => {
