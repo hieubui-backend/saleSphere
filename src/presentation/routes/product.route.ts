@@ -108,10 +108,10 @@ router.get('/:id', productController.getProductById);
  */
 router.post(
     '/',
-    protect, 
-    checkRole('admin'), 
-    upload.array('images', 5), 
-    validateProduct, 
+    protect,
+    checkRole('admin', 'staff'),
+    upload.array('images', 5),
+    validateProduct,
     productController.createProduct
 );
 
@@ -156,11 +156,11 @@ router.post(
  *         description: Cập nhật thành công
  */
 router.put(
-    '/:id', 
-    protect, 
-    checkRole('admin'), 
-    upload.array('images', 5), 
-    validateProduct, 
+    '/:id',
+    protect,
+    checkRole('admin', 'staff'),
+    upload.array('images', 5),
+    validateProduct,
     productController.updateProduct
 );
 
@@ -183,9 +183,9 @@ router.put(
  *         description: Xóa thành công
  */
 router.delete(
-    '/:id', 
-    protect, 
-    checkRole('admin'), 
+    '/:id',
+    protect,
+    checkRole('admin'),
     productController.deleteProduct
 );
 

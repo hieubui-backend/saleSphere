@@ -56,7 +56,16 @@ export const handleLogisticsWebhook = asyncHandler(async (req: Request, res: Res
 
 export const getDashboard = asyncHandler(async (req: Request, res: Response) => {
     const { orderUseCases } = req.container.cradle;
-    const data = await orderUseCases.getDashboardStats();
+    let data = await orderUseCases.getDashboardStats();
+    
+    const user = req.session?.user || (req as any).user;
+    
+    // Nếu là staff, loại bỏ thông tin nhạy cảm (doanh thu)
+    if (user && user.role === 'staff') {
+        const { totalRevenue, revenueByMonth, ...safeData } = data;
+        data = safeData;
+    }
+    
     res.status(200).json({ success: true, data });
 });
 

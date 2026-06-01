@@ -155,7 +155,7 @@ router.get('/customers', protect, checkRole('admin', 'staff'), customerControlle
  *       201:
  *         description: Tạo thành công
  */
-router.post('/customers', protect, checkRole('admin'), customerController.createCustomer);
+router.post('/customers', protect, checkRole('admin', 'staff'), customerController.createCustomer);
 
 /**
  * @swagger
@@ -187,7 +187,7 @@ router.post('/customers', protect, checkRole('admin'), customerController.create
  *       200:
  *         description: Cập nhật thành công
  */
-router.put('/customers/:id', protect, checkRole('admin'), customerController.updateCustomer);
+router.put('/customers/:id', protect, checkRole('admin', 'staff'), customerController.updateCustomer);
 
 /**
  * @swagger
