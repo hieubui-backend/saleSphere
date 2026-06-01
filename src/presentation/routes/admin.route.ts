@@ -28,6 +28,12 @@ const router = express.Router();
  *     responses:
  *       200:
  *         description: Thành công
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.get('/dashboard', protect, checkRole('admin', 'staff'), orderController.getDashboard);
 
@@ -46,6 +52,12 @@ router.get('/dashboard', protect, checkRole('admin', 'staff'), orderController.g
  *     responses:
  *       200:
  *         description: Thành công
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.get('/products', protect, checkRole('admin', 'staff'), productController.getProducts);
 
@@ -66,6 +78,14 @@ router.get('/products', protect, checkRole('admin', 'staff'), productController.
  *     responses:
  *       200:
  *         description: Thành công
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.get('/products/:id', protect, checkRole('admin', 'staff'), productController.getProductById);
 
@@ -84,6 +104,12 @@ router.get('/products/:id', protect, checkRole('admin', 'staff'), productControl
  *     responses:
  *       200:
  *         description: Thành công
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.get('/orders', protect, checkRole('admin', 'staff'), orderController.getOrders);
 
@@ -104,6 +130,14 @@ router.get('/orders', protect, checkRole('admin', 'staff'), orderController.getO
  *     responses:
  *       200:
  *         description: Thành công
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.get('/orders/:id', protect, checkRole('admin', 'staff'), orderController.getOrderById);
 
@@ -122,6 +156,12 @@ router.get('/orders/:id', protect, checkRole('admin', 'staff'), orderController.
  *     responses:
  *       200:
  *         description: Thành công
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.get('/customers', protect, checkRole('admin', 'staff'), customerController.getAllCustomers);
 
@@ -154,6 +194,14 @@ router.get('/customers', protect, checkRole('admin', 'staff'), customerControlle
  *     responses:
  *       201:
  *         description: Tạo thành công
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.post('/customers', protect, checkRole('admin', 'staff'), customerController.createCustomer);
 
@@ -186,6 +234,16 @@ router.post('/customers', protect, checkRole('admin', 'staff'), customerControll
  *     responses:
  *       200:
  *         description: Cập nhật thành công
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.put('/customers/:id', protect, checkRole('admin', 'staff'), customerController.updateCustomer);
 
@@ -206,6 +264,14 @@ router.put('/customers/:id', protect, checkRole('admin', 'staff'), customerContr
  *     responses:
  *       200:
  *         description: Xóa thành công
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.delete('/customers/:id', protect, checkRole('admin'), customerController.deleteCustomer);
 

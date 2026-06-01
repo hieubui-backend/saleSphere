@@ -43,6 +43,8 @@ const router = express.Router();
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/Product'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.get('/', productController.getProducts);
 
@@ -65,8 +67,12 @@ router.get('/', productController.getProducts);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Product'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
  *       404:
- *         description: Không tìm thấy sản phẩm
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.get('/:id', productController.getProductById);
 
@@ -105,6 +111,14 @@ router.get('/:id', productController.getProductById);
  *     responses:
  *       201:
  *         description: Tạo thành công
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.post(
     '/',
@@ -154,6 +168,16 @@ router.post(
  *     responses:
  *       200:
  *         description: Cập nhật thành công
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.put(
     '/:id',
@@ -181,6 +205,14 @@ router.put(
  *     responses:
  *       200:
  *         description: Xóa thành công
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.delete(
     '/:id',

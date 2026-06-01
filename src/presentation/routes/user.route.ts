@@ -33,6 +33,14 @@ const router = express.Router();
  *     responses:
  *       201:
  *         description: Đăng ký thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AuthResponse'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.post('/register', validateUserRegister, userController.register);
 
@@ -57,6 +65,16 @@ router.post('/register', validateUserRegister, userController.register);
  *     responses:
  *       200:
  *         description: Đăng nhập thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AuthResponse'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.post('/login', userController.login);
 
@@ -84,6 +102,12 @@ router.post('/login', userController.login);
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/User'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.get('/', protect, checkRole('admin'), userController.getUsers);
 
@@ -108,6 +132,14 @@ router.get('/', protect, checkRole('admin'), userController.getUsers);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/User'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.get('/:id', protect, checkRole('admin'), userController.getUserById);
 
@@ -139,6 +171,16 @@ router.get('/:id', protect, checkRole('admin'), userController.getUserById);
  *     responses:
  *       200:
  *         description: Cập nhật thành công
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.put('/:id', protect, checkRole('admin'), userController.updateUser);
 
@@ -159,6 +201,14 @@ router.put('/:id', protect, checkRole('admin'), userController.updateUser);
  *     responses:
  *       200:
  *         description: Xóa thành công
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.delete('/:id', protect, checkRole('admin'), userController.deleteUser);
 

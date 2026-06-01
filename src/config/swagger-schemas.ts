@@ -14,6 +14,22 @@
  *         metadata:
  *           type: object
  *
+ *     ErrorResponse:
+ *       type: object
+ *       properties:
+ *         success:
+ *           type: boolean
+ *           example: false
+ *         message:
+ *           type: string
+ *           example: "Thông báo lỗi chi tiết"
+ *         error:
+ *           type: object
+ *           description: Chi tiết lỗi (chỉ có ở môi trường development)
+ *         stack:
+ *           type: string
+ *           description: Stack trace (chỉ có ở môi trường development)
+ *
  *     Product:
  *       type: object
  *       properties:
@@ -95,6 +111,16 @@
  *           type: string
  *           format: date-time
  *
+ *     AuthResponse:
+ *       type: object
+ *       properties:
+ *         success:
+ *           type: boolean
+ *         token:
+ *           type: string
+ *         user:
+ *           $ref: '#/components/schemas/User'
+ *
  *     Customer:
  *       type: object
  *       properties:
@@ -125,4 +151,36 @@
  *           type: integer
  *         image:
  *           type: string
+ *
+ *   responses:
+ *     BadRequest:
+ *       description: Dữ liệu đầu vào không hợp lệ (400)
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ErrorResponse'
+ *     Unauthorized:
+ *       description: Chưa đăng nhập hoặc Token sai/hết hạn (401)
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ErrorResponse'
+ *     Forbidden:
+ *       description: Không có quyền truy cập (403)
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ErrorResponse'
+ *     NotFound:
+ *       description: Không tìm thấy tài nguyên (404)
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ErrorResponse'
+ *     InternalServerError:
+ *       description: Lỗi máy chủ (500)
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ErrorResponse'
  */
