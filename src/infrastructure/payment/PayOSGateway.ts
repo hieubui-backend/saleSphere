@@ -37,4 +37,11 @@ export default class PayOSGateway {
     public verifyWebhookData(body: any): any {
         return this.payos.webhooks.verify(body);
     }
+
+    /**
+     * Lấy thông tin thanh toán từ PayOS
+     */
+    public async getPaymentLinkInformation(orderCode: number | string): Promise<any> {
+        return await this.payos.paymentRequests.get(Number(orderCode));
+    }
 }

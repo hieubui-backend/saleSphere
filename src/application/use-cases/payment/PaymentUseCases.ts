@@ -73,7 +73,7 @@ export default class PaymentUseCases {
     /**
      * Xử lý Webhook từ PayOS
      */
-    public async handlePayOSWebhook(body: any): Promise<OrderEntity | null> {
+    public async handlePayOSWebhook(body: any, io?: any): Promise<OrderEntity | null> {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
@@ -107,6 +107,13 @@ export default class PaymentUseCases {
                 // GỬI EMAIL XÁC NHẬN QUA MESSAGE QUEUE (BULLMQ)
                 this.addOrderConfirmationToQueue(updatedOrder!);
 
+                if (io) {
+                    io.emit('orderUpdate', { 
+                        orderId: updatedOrder!.id || (updatedOrder as any)._id, 
+                        status: updatedOrder!.status, 
+                        paymentStatus: 'paid' 
+                    });
+                }
 
                 return updatedOrder;
             }
@@ -134,6 +141,93 @@ export default class PaymentUseCases {
         } catch (error) {
             console.error("Error adding order confirmation job to queue:", error);
         }
+    }
+
+    /**
+     * Xử lý VNPay Return
+     */
+    public async handleVnPayReturn(query: any): Promise<string | null> {
+        const isVerified = this.vnPayGateway.verifyReturn(query);
+
+        if (isVerified.isSuccess) {
+            const orderId = query.vnp_TxnRef as string;
+            const order = await this.orderRepository.findById(orderId);
+            if (order && order.paymentStatus !== 'paid') {
+                order.updatePaymentStatus('paid');
+                await this.orderRepository.save(order);
+            }
+            return orderId;
+        }
+        return null;
+    }
+
+    /**
+     * Xử lý VNPay IPN
+     */
+    public async handleVnPayIpn(query: any): Promise<{ RspCode: string, Message: string }> {
+        try {
+            const isVerified = this.vnPayGateway.verifyIpn(query);
+
+            if (isVerified.isSuccess) {
+                const orderId = query.vnp_TxnRef as string;
+                const order = await this.orderRepository.findById(orderId);
+                if (order && order.paymentStatus !== 'paid') {
+                    order.updatePaymentStatus('paid');
+                    await this.orderRepository.save(order);
+                }
+                return { RspCode: '00', Message: 'Confirm Success' };
+            } else {
+                return { RspCode: '97', Message: 'Checksum failed' };
+            }
+        } catch (error) {
+            return { RspCode: '99', Message: 'Unknown error' };
+        }
+    }
+
+    /**
+     * Xử lý PayOS Return
+     */
+    public async handlePayOSReturn(query: any, io?: any): Promise<boolean> {
+        const { orderCode, cancel } = query;
+
+        // Nếu người dùng hủy
+        if (cancel === 'true') {
+            return false;
+        }
+
+        if (orderCode) {
+            try {
+                // Gọi API PayOS để lấy trạng thái thực sự của đơn hàng
+                // Việc này thay thế cho việc kiểm tra chữ ký (Signature)
+                // và đảm bảo thông tin trả về là chính xác từ PayOS, không thể bị giả mạo qua query
+                const paymentInfo = await this.payOSGateway.getPaymentLinkInformation(orderCode);
+                
+                if (paymentInfo && paymentInfo.status === 'PAID') {
+                    const order = await this.orderRepository.findByOrderCode(Number(orderCode));
+
+                    if (order && order.paymentStatus !== 'paid') {
+                        order.updatePaymentStatus('paid');
+                        const updatedOrder = await this.orderRepository.save(order);
+                        const oId = updatedOrder!.id || (updatedOrder as any)._id;
+                        console.log(`✅ [PayOS Return] Đã cập nhật paymentStatus thành 'paid' qua API verify cho đơn hàng ${oId}`);
+                        
+                        if (io) {
+                            io.emit('orderUpdate', { 
+                                orderId: oId, 
+                                status: order.status, 
+                                paymentStatus: 'paid' 
+                            });
+                        }
+                    }
+                    return true;
+                }
+            } catch (error) {
+                console.error("Lỗi khi xác minh thông tin thanh toán PayOS:", error);
+                return false;
+            }
+        }
+        
+        return false;
     }
 }
 
