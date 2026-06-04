@@ -28,7 +28,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository }}
+          images: ghcr.io/hieubui-backend/salesphere
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha,prefix=sha-,format=short
@@ -98,7 +98,7 @@ jobs:
       # Cập nhật image tag mới nhất cho deployment (immutable SHA tag)
       - name: Update deployment image
         run: |
-          IMAGE="ghcr.io/${{ github.repository }}:sha-$(echo ${{ github.sha }} | cut -c1-7)"
+          IMAGE="ghcr.io/hieubui-backend/salesphere:sha-$(echo ${{ github.sha }} | cut -c1-7)"
           echo "🚀 Deploying image: $IMAGE"
           kubectl set image deployment/salesphere-app \
             app=$IMAGE \
