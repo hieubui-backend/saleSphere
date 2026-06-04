@@ -40,6 +40,10 @@ spec:
             - secretRef:
                 name: salesphere-secrets
 
+          env:
+            - name: REDIS_URL
+              value: "redis://:$(REDIS_PASSWORD)@salesphere-redis:6379"
+
           # Giới hạn tài nguyên (quan trọng để HPA hoạt động đúng)
           resources:
             requests:
