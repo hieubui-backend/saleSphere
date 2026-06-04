@@ -111,7 +111,19 @@ jobs:
             --namespace=salesphere \
             --timeout=180s
 
+      - name: Debug on Failure
+        if: failure()
+        run: |
+          echo "❌ Rollout failed! Debugging information:"
+          echo "--- POD STATUS ---"
+          kubectl get pods -n salesphere
+          echo "--- POD DESCRIBE ---"
+          kubectl describe pods -l app=salesphere-app -n salesphere
+          echo "--- POD LOGS ---"
+          kubectl logs -l app=salesphere-app -n salesphere --tail=100 || true
+
       - name: Deployment success
+        if: success()
         run: |
           echo "✅ Deployment complete!"
           kubectl get pods -n salesphere
