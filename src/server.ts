@@ -91,9 +91,21 @@ import orderRoutes from './presentation/routes/order.route';
 import userRoutes from './presentation/routes/user.route';
 import paymentRoutes from './presentation/routes/payment.route';
 
-// 7.1. HEALTH CHECK
+// 7.1. HEALTH CHECK - phải đặt TRƯỚC mongoose.connect() để K8s probe hoạt động
+let isMongoConnected = false;
+
 app.get('/', (req, res) => {
     res.json({ success: true, message: 'SaleSphere API is running' });
+});
+
+// Endpoint /health cho Kubernetes readiness/liveness probe
+app.get('/health', (req, res) => {
+    if (isMongoConnected) {
+        res.status(200).json({ status: 'ok', db: 'connected' });
+    } else {
+        // Trả 200 cho liveness (app không chết) nhưng 503 cho readiness (chưa sẵn sàng)
+        res.status(503).json({ status: 'starting', db: 'connecting' });
+    }
 });
 
 // 7.2. AUTH ROUTES (Admin/Staff)
@@ -122,12 +134,23 @@ app.use((req, res) => {
 // Middleware xử lý lỗi tập trung
 app.use(errorHandler);
 
-// --- 8. KẾT NỐI DATABASE & START SERVER ---
+// --- 8. KHỜi ĐỘNG SERVER TRƯỚC, SAU ĐÓ MỚI KẾT NỐI DB ---
+// (Quan trọng: để K8s readinessProbe tiếp cận được app ngay từ đầu)
 const PORT = config.port;
-mongoose.connect(config.mongoUri)
-    .then(() => {
+server.listen(PORT, () => {
+    logger.info(`🚀 Server running in ${config.env} mode on port ${PORT}`);
+    logger.info(`🚀 API Base: http://localhost:${PORT}/api`);
+    logger.info(`📄 API Docs: http://localhost:${PORT}/api-docs`);
+});
+
+mongodb_connect();
+
+async function mongodb_connect() {
+    try {
+        await mongoose.connect(config.mongoUri);
+        isMongoConnected = true;
         logger.info('🎉 Kết nối MongoDB thành công!');
-        
+
         io.on('connection', (socket) => {
             logger.info(`⚡ Kết nối Socket.io thiết lập: ${socket.id}`);
             socket.on('disconnect', () => {
@@ -135,21 +158,18 @@ mongoose.connect(config.mongoUri)
             });
         });
 
-        server.listen(PORT, () => {
-            logger.info(`🚀 Server running in ${config.env} mode`);
-            logger.info(`🚀 API Base: http://localhost:${PORT}/api`);
-            logger.info(`📄 API Docs: http://localhost:${PORT}/api-docs`);
-        });
-
-        // --- 9. KHỞI TẠO WORKERS (BACKGROUND JOBS) ---
+        // --- 9. KHỜi ĐỘNG WORKERS (BACKGROUND JOBS) ---
         container.resolve('emailWorker');
         logger.info('⚙️  Email Worker has been initialized.');
 
-    })
-    .catch(err => {
+    } catch (err: any) {
+        isMongoConnected = false;
         logger.error('❌ Lỗi kết nối MongoDB: %s', err.message);
-        process.exit(1);
-    });
+        // Không gọi process.exit(1) nữa — để K8s readiness probe tự xử lý
+        // K8s sẽ restart pod sau nhiều lần readiness fail liên tiếp
+        logger.error('⚠️  Server khởi động nhưng chưa kết nối được MongoDB. Readiness probe sẽ tự động re-check.');
+    }
+}
 
 // --- 10. GRACEFUL SHUTDOWN ---
 const gracefulShutdown = async () => {

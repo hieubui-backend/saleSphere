@@ -6,7 +6,7 @@ metadata:
   labels:
     app: salesphere-app
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: salesphere-app
@@ -54,18 +54,21 @@ spec:
               cpu: "500m"
 
           # Health checks
+          # initialDelaySeconds phải đủ lớn để server.listen() hoàn tất
           livenessProbe:
             httpGet:
-              path: /
+              path: /          # / luôn trả 200 khi app đang chạy (kể cả khi DB chưa kết nối)
               port: 5000
-            initialDelaySeconds: 30
-            periodSeconds: 15
+            initialDelaySeconds: 30   # Chờ 30s trước lần check đầu tiên
+            periodSeconds: 20
             failureThreshold: 3
+            timeoutSeconds: 5
 
           readinessProbe:
             httpGet:
-              path: /
+              path: /health    # /health trả 503 khi MongoDB chưa sẵn sàng
               port: 5000
-            initialDelaySeconds: 10
-            periodSeconds: 5
-            failureThreshold: 3
+            initialDelaySeconds: 15   # Server đã listen rồi, chỉ cần chờ DB
+            periodSeconds: 10
+            failureThreshold: 12      # 12 lần × 10s = 120s để thử lại
+            timeoutSeconds: 5

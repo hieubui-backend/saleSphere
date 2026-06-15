@@ -83,6 +83,33 @@ jobs:
           echo "${{ secrets.KUBECONFIG_B64 }}" | base64 -d > $HOME/.kube/config
           chmod 600 $HOME/.kube/config
 
+      # Kiểm tra secrets tồn tại trước khi deploy (fail nhanh thay vì chờ timeout)
+      - name: Verify required secrets exist
+        run: |
+          echo "🔍 Kiểm tra Kubernetes Secrets..."
+          if ! kubectl get secret salesphere-secrets -n salesphere &>/dev/null; then
+            echo "❌ Lỗi: Secret 'salesphere-secrets' chưa được tạo trên cluster!"
+            echo "💡 Chạy lệnh sau trên VPS để tạo secret:"
+            echo "  sudo kubectl create secret generic salesphere-secrets \\"
+            echo "    --from-literal=MONGO_URI='mongodb://...' \\"
+            echo "    --from-literal=REDIS_PASSWORD='...' \\"
+            echo "    --from-literal=JWT_SECRET='...' \\"
+            echo "    --from-literal=SESSION_SECRET='...' \\"
+            echo "    --namespace=salesphere"
+            exit 1
+          fi
+          if ! kubectl get secret ghcr-secret -n salesphere &>/dev/null; then
+            echo "❌ Lỗi: Secret 'ghcr-secret' chưa được tạo trên cluster!"
+            echo "💡 Chạy lệnh sau trên VPS:"
+            echo "  sudo kubectl create secret docker-registry ghcr-secret \\"
+            echo "    --docker-server=ghcr.io \\"
+            echo "    --docker-username=BUI-VAN-HIEU \\"
+            echo "    --docker-password=<GITHUB_PAT> \\"
+            echo "    --namespace=salesphere"
+            exit 1
+          fi
+          echo "✅ Tất cả secrets tồn tại!"
+
       # Apply toàn bộ k8s manifest (namespace, configmap, deployment, service, ingress, hpa)
       # Secret KHÔNG apply ở đây (phải tạo thủ công trước trên cluster)
       - name: Apply Kubernetes manifests
@@ -104,12 +131,12 @@ jobs:
             app=$IMAGE \
             --namespace=salesphere
 
-      # Chờ rolling update hoàn tất (timeout 3 phút)
+      # Chờ rolling update hoàn tất (timeout 5 phút - đủ thời gian cho app kết nối DB)
       - name: Wait for rollout
         run: |
           kubectl rollout status deployment/salesphere-app \
             --namespace=salesphere \
-            --timeout=180s
+            --timeout=300s
 
       - name: Debug on Failure
         if: failure()
