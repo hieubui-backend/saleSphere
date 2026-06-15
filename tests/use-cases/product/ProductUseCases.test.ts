@@ -39,7 +39,7 @@ describe('ProductUseCases', () => {
 
     describe('createProduct', () => {
         it('nên tạo sản phẩm với ảnh mặc định nếu không cung cấp ảnh', async () => {
-            const productData = { name: 'Test ProductEntity', price: 100, stock: 10 };
+            const productData = { name: 'Test ProductEntity', price: 100, variants: [] };
             mockProductRepository.create.mockImplementation((data: any) => Promise.resolve({ id: '1', ...data }));
 
             const result: any = await productUseCases.createProduct(productData);
@@ -55,14 +55,14 @@ describe('ProductUseCases', () => {
                 .rejects.toThrow('Tên sản phẩm không được để trống');
         });
 
-        it('nên chuẩn hóa giá và tồn kho về số', async () => {
-            const productData = { name: 'Test', price: '150', stock: '5' };
+        it('nên chuẩn hóa giá và variants', async () => {
+            const productData = { name: 'Test', price: '150' };
             mockProductRepository.create.mockImplementation((data: any) => Promise.resolve(data));
 
             const result: any = await productUseCases.createProduct(productData);
 
             expect(result.price).toBe(150);
-            expect(result.stock).toBe(5);
+            expect(result.variants).toEqual([]);
         });
     });
 
@@ -70,7 +70,7 @@ describe('ProductUseCases', () => {
         it('nên gọi repository.updateById với dữ liệu đã chuẩn hóa', async () => {
             const id = 'prod1';
             const updateData = { name: ' Updated ', price: '200' };
-            const existingProduct = { id, name: 'Old', price: 100, stock: 10 };
+            const existingProduct = { id, name: 'Old', price: 100, variants: [] };
             
             mockProductRepository.findById.mockResolvedValue(existingProduct);
             mockProductRepository.updateById.mockResolvedValue({ ...existingProduct, name: 'Updated', price: 200 });

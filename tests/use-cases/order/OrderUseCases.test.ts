@@ -49,13 +49,15 @@ describe('OrderUseCases', () => {
     describe('createOrder', () => {
         it('nên tạo đơn hàng và trừ kho thành công', async () => {
             const userId = 'u1';
-            const items = [{ productId: 'p1', quantity: 2 }];
+            const items = [{ productId: 'p1', quantity: 2, variantId: 'v1' }];
             const product = { 
                 id: 'p1', 
                 name: 'ProductEntity 1', 
                 price: 100, 
-                stock: 10,
-                deductStock: jest.fn().mockImplementation(function(this: any, q: number) { this.stock -= q; })
+                getEffectivePrice: () => 100,
+                getTotalStock: () => 10,
+                variants: [{ _id: 'v1', color: 'Red', size: 'M', stock: 10, additionalPrice: 0 }],
+                deductStock: jest.fn()
             };
             
             mockProductRepository.findById.mockResolvedValue(product);
@@ -63,18 +65,20 @@ describe('OrderUseCases', () => {
 
             const result = await orderUseCases.createOrder(userId, { items, shippingAddress: 'Addr', region: 'HA_NOI' });
 
-            expect(mockProductRepository.decrementStock).toHaveBeenCalledWith('p1', 2, mockSession);
+            expect(mockProductRepository.decrementStock).toHaveBeenCalledWith('p1', 2, 'v1', mockSession);
             expect(mockOrderRepository.create).toHaveBeenCalled();
             expect(mockSession.commitTransaction).toHaveBeenCalled();
             expect(result!.totalAmount).toBe(20200); // 2 * 100 + 20000 ship
         });
 
         it('nên ném lỗi nếu không đủ hàng trong kho', async () => {
-            const items = [{ productId: 'p1', quantity: 20 }];
+            const items = [{ productId: 'p1', quantity: 20, variantId: 'v1' }];
             const product = { 
                 id: 'p1', 
                 name: 'ProductEntity 1', 
-                stock: 10,
+                getTotalStock: () => 10,
+                getEffectivePrice: () => 100,
+                variants: [{ _id: 'v1', color: 'Red', size: 'M', stock: 10, additionalPrice: 0 }],
                 deductStock: jest.fn().mockImplementation(() => { throw new Error('không đủ hàng'); })
             };
             mockProductRepository.findById.mockResolvedValue(product);

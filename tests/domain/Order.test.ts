@@ -22,13 +22,13 @@ describe('OrderEntity Entity', () => {
     });
 
     it('should add items and update totals correctly', () => {
-        const order = new OrderEntity({ customerId, shippingAddress, region, paymentMethod });
-        const product = new ProductEntity({ id: 'p1', name: 'Prod 1', price: 100000, stock: 10 });
+        const order = new OrderEntity({ customerId, shippingAddress: { recipientName: 'test', phone: '123', street: '123', ward: 'W', district: 'D', province: 'P' }, region, paymentMethod });
+        const product = new ProductEntity({ id: 'p1', name: 'Prod 1', price: 100000, variants: [{ _id: 'v1', color: 'Red', size: 'M', stock: 10, additionalPrice: 0 }] });
 
-        order.addItem(product, 2);
+        order.addItem(product, 2, 'v1');
 
         expect(order.items.length).toBe(1);
-        expect(product.stock).toBe(8); // Stock deducted
+        expect(product.getTotalStock()).toBe(8); // Stock deducted
         expect(order.subtotal).toBe(200000);
         expect(order.totalAmount).toBe(220000); // 200k + 20k ship
     });
