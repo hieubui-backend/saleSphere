@@ -12,21 +12,21 @@ export default class CustomerUseCases {
         this.cartUseCases = cartUseCases;
     }
 
-    public async createCustomer({ name, email, phone, address }: { name: string, email: string, phone?: string, address?: string }): Promise<CustomerEntity | null> {
+    public async createCustomer({ name, email, phone }: { name: string, email: string, phone?: string }): Promise<CustomerEntity | null> {
         const emailVO = new Email(email);
         const existing = await this.customerRepository.findByEmail(emailVO.getValue());
         if (existing) throw new AppError('Email đã tồn tại!', 400);
-        
-        const customerEntity = new CustomerEntity({ name, email: emailVO.getValue(), phone, address });
+
+        const customerEntity = new CustomerEntity({ name, email: emailVO.getValue(), phone, addresses: [] });
         return await this.customerRepository.create(customerEntity);
     }
 
-    public async updateCustomer(id: string, { name, email, phone, address }: { name?: string, email?: string, phone?: string, address?: string }): Promise<CustomerEntity | null> {
+    public async updateCustomer(id: string, { name, email, phone }: { name?: string, email?: string, phone?: string }): Promise<CustomerEntity | null> {
         const customerEntity = await this.customerRepository.findById(id);
         if (!customerEntity) throw new AppError('Không tìm thấy người mua!', 404);
-        
-        customerEntity.updateProfile({ name, phone, address });
-        
+
+        customerEntity.updateProfile({ name, phone });
+
         if (email) {
             customerEntity.email = new Email(email).getValue();
         }

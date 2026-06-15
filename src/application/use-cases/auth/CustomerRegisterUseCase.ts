@@ -21,9 +21,9 @@ export default class CustomerRegisterUseCase {
     }
 
 
-    public async execute({ name, email, password, phone, address }: any): Promise<any> {
+    public async execute({ name, email, password, phone }: any): Promise<any> {
         const emailVO = new Email(email);
-        
+
         // 1. Kiểm tra email tồn tại
         const existingCustomer = await this.customerRepository.findByEmail(emailVO.getValue());
         if (existingCustomer) {
@@ -33,13 +33,13 @@ export default class CustomerRegisterUseCase {
         // 2. Hash password
         const hashedPassword = await this.hasher.hash(password);
 
-        // 3. Tạo CustomerEntity Entity
+        // 3. Tạo CustomerEntity (địa chỉ giao hàng thêm sau ở trang Profile)
         const newCustomerEntity = new CustomerEntity({
             name,
             email: emailVO.getValue(),
             password: hashedPassword,
             phone,
-            address
+            addresses: []
         });
 
         // 4. Lưu vào Database

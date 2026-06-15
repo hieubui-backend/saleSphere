@@ -47,12 +47,12 @@ export default class ProductUseCases {
     public async createProduct(productData: any): Promise<ProductEntity | null> {
         const cleanData = {
             ...productData,
-            name: productData.name ? productData.name.trim() : "",
+            name: productData.name ? productData.name.trim() : '',
             price: Number(productData.price) || 0,
-            stock: Number(productData.stock) || 0,
-            images: productData.images && productData.images.length > 0 
-                    ? productData.images 
-                    : ['/images/default-product.png']
+            variants: productData.variants ?? [],
+            images: productData.images && productData.images.length > 0
+                ? productData.images
+                : ['/images/default-product.png']
         };
 
         if (!cleanData.name) {
@@ -75,7 +75,10 @@ export default class ProductUseCases {
 
         if (updateData.name) product.name = updateData.name.trim();
         if (updateData.price !== undefined) product.price = Number(updateData.price) || 0;
-        if (updateData.stock !== undefined) product.stock = Number(updateData.stock) || 0;
+        if (updateData.variants !== undefined) product.variants = updateData.variants;
+        if (updateData.brand !== undefined) product.brand = updateData.brand;
+        if (updateData.category !== undefined) product.category = updateData.category;
+        if (updateData.isActive !== undefined) product.isActive = updateData.isActive;
 
         const updatedProduct = await this.productRepository.updateById(id, product);
         

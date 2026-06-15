@@ -27,7 +27,7 @@ export default class CartUseCases {
         const productEntity = await this.productRepository.findById(productId);
         if (!productEntity) throw new Error('Sản phẩm không tồn tại');
 
-        if (productEntity.stock < quantity) throw new Error('Sản phẩm không đủ hàng');
+        if (productEntity.getTotalStock() < quantity) throw new Error('Sản phẩm không đủ hàng');
 
         cartEntity.addItem(productEntity as any, quantity);
         return await this.cartRepository.save(cartEntity);
@@ -40,8 +40,9 @@ export default class CartUseCases {
         const productEntity = await this.productRepository.findById(productId);
         if (!productEntity) throw new Error('Sản phẩm không tồn tại');
 
-        if (quantity > productEntity.stock) {
-            throw new Error(`Sản phẩm này chỉ còn ${productEntity.stock} món trong kho`);
+        const availableStock = productEntity.getTotalStock();
+        if (quantity > availableStock) {
+            throw new Error(`Sản phẩm này chỉ còn ${availableStock} món trong kho`);
         }
 
         if (quantity <= 0) {

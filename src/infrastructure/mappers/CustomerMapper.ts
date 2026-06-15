@@ -9,7 +9,10 @@ export default class CustomerMapper {
             email: doc.email,
             password: doc.password,
             phone: doc.phone,
-            address: doc.address,
+            avatar: doc.avatar,
+            gender: doc.gender,
+            dateOfBirth: doc.dateOfBirth,
+            addresses: doc.addresses ?? [],
             isActive: doc.isActive
         });
     }
@@ -20,13 +23,11 @@ export default class CustomerMapper {
             email: entity.email,
             password: entity.password,
             phone: entity.phone,
-            address: entity.address,
+            avatar: entity.avatar,
+            gender: entity.gender,
+            dateOfBirth: entity.dateOfBirth,
+            addresses: entity.addresses,
             isActive: entity.isActive
         };
     }
 }
-
-
-
-
-

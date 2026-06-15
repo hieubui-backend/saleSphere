@@ -37,13 +37,15 @@ export default class OrderUseCases {
                 
                 if (!productEntity) throw new Error(`Sản phẩm với ID ${pId} không tồn tại`);
 
-                // Atomic decrement stock
-                const success = await this.productRepository.decrementStock(pId, item.quantity, session);
+                // Atomic decrement stock theo variantId (nếu có)
+                const variantId = item.variantId;
+                const success = await this.productRepository.decrementStock(pId, item.quantity, variantId, session);
                 if (!success) {
-                    throw new Error(`Sản phẩm "${productEntity.name}" đã hết hàng hoặc không đủ số lượng (${productEntity.stock} món trong kho)`);
+                    const stockInfo = productEntity.getTotalStock();
+                    throw new Error(`Sản phẩm "${productEntity.name}" đã hết hàng hoặc không đủ số lượng (Còn: ${stockInfo} món)`);
                 }
 
-                order.addItem(productEntity, item.quantity);
+                order.addItem(productEntity, item.quantity, variantId);
             }
 
             const newOrder = await this.orderRepository.create(order, { session });
